@@ -118,12 +118,29 @@ describe('SearchPage', () => {
     fireEvent.click(screen.getByRole('option', { name: 'Highest Score' }));
     expect(screen.getByRole('dialog', { name: /filter & sort/i })).toBeInTheDocument();
 
+    // Year input preserves partial keystrokes while typing character-by-character
+    const yearInput = screen.getByLabelText('Year');
+    fireEvent.change(yearInput, { target: { value: '2' } });
+    expect(yearInput).toHaveValue('2');
+    fireEvent.change(yearInput, { target: { value: '20' } });
+    expect(yearInput).toHaveValue('20');
+    fireEvent.change(yearInput, { target: { value: '2026' } });
+    expect(yearInput).toHaveValue('2026');
+
     fireEvent.click(screen.getByRole('button', { name: 'Action' }));
     fireEvent.click(screen.getByRole('button', { name: /apply filters/i }));
 
     await waitFor(() => {
       expect(screen.getByText('Attack on Titan')).toBeInTheDocument();
     });
+
+    const hasYear2026 = fetchMock.mock.calls.some(([, init]) => {
+      const body = JSON.parse(String(init?.body ?? '{}')) as {
+        variables?: { seasonYear?: number };
+      };
+      return body.variables?.seasonYear === 2026;
+    });
+    expect(hasYear2026).toBe(true);
   });
 
   it('shows EmptyState when search yields no results and resets filters via Reset Filters', async () => {

@@ -78,12 +78,16 @@ export function FilterSheet({
   onReset,
 }: FilterSheetProps) {
   const [draft, setDraft] = useState<SearchFilters>(filters);
+  const [yearInput, setYearInput] = useState(() =>
+    filters.year ? String(filters.year) : '',
+  );
   const isMedia = draft.type === 'ANIME' || draft.type === 'MANGA';
   const { data: meta } = useSearchMetadataQuery(isMedia);
 
   useEffect(() => {
     if (open) {
       setDraft(filters);
+      setYearInput(filters.year ? String(filters.year) : '');
     }
   }, [open, filters]);
 
@@ -97,9 +101,6 @@ export function FilterSheet({
   const availableGenres = (meta?.GenreCollection ?? []).filter(
     (g) => allowAdult || g !== 'Hentai',
   );
-  const availableTags = (meta?.MediaTagCollection ?? [])
-    .filter((tag) => allowAdult || !tag.isAdult)
-    .slice(0, 28);
 
   const toggleItem = (list: string[], value: string): string[] =>
     list.includes(value) ? list.filter((item) => item !== value) : [...list, value];
@@ -147,16 +148,20 @@ export function FilterSheet({
               <label className="flex flex-col gap-1.5 text-xs font-semibold text-[var(--text-secondary)]">
                 <span>Year</span>
                 <input
-                  type="number"
-                  min={1950}
-                  max={2035}
+                  type="text"
+                  inputMode="numeric"
+                  maxLength={4}
                   placeholder="e.g. 2026"
-                  value={draft.year ?? ''}
+                  value={yearInput}
                   onChange={(e) => {
-                    const parsed = Number.parseInt(e.target.value, 10);
+                    const digits = e.target.value.replace(/\D/g, '').slice(0, 4);
+                    setYearInput(digits);
+                    const parsed = Number.parseInt(digits, 10);
+                    const isValidYear =
+                      digits.length === 4 && !Number.isNaN(parsed) && parsed >= 1900 && parsed <= 2099;
                     setDraft((prev) => ({
                       ...prev,
-                      year: !Number.isNaN(parsed) && parsed >= 1950 ? parsed : undefined,
+                      year: isValidYear ? parsed : undefined,
                     }));
                   }}
                   className="tabular-nums h-10 w-full rounded-[10px] border border-[var(--border-hairline)] bg-[var(--bg-canvas)] px-3 text-sm font-medium text-[var(--text-primary)] shadow-token-xs focus-visible:outline-none focus-visible:border-[var(--accent-primary)] focus-visible:ring-2 focus-visible:ring-blue-500/20"
@@ -182,11 +187,10 @@ export function FilterSheet({
                             season: active ? undefined : season,
                           }))
                         }
-                        className={`rounded-lg border px-2.5 py-1.5 text-xs font-semibold transition-crisp ${
-                          active
+                        className={`rounded-lg border px-2.5 py-1.5 text-xs font-semibold transition-crisp ${active
                             ? 'border-[var(--accent-primary)] bg-[var(--accent-soft)] text-[var(--accent-ink)]'
                             : 'border-[var(--border-hairline)] bg-[var(--bg-canvas)] text-[var(--text-secondary)]'
-                        }`}
+                          }`}
                       >
                         {season.charAt(0) + season.slice(1).toLowerCase()}
                       </button>
@@ -214,45 +218,12 @@ export function FilterSheet({
                             genres: toggleItem(prev.genres, genre),
                           }))
                         }
-                        className={`rounded-lg border px-2.5 py-1 text-xs font-medium transition-crisp ${
-                          active
+                        className={`rounded-lg border px-2.5 py-1 text-xs font-medium transition-crisp ${active
                             ? 'border-[var(--accent-primary)] bg-[var(--accent-soft)] text-[var(--accent-ink)]'
                             : 'border-[var(--border-hairline)] bg-[var(--bg-canvas)] text-[var(--text-secondary)]'
-                        }`}
+                          }`}
                       >
                         {genre}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            ) : null}
-
-            {availableTags.length > 0 ? (
-              <div className="space-y-1.5">
-                <span className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">
-                  Popular Tags
-                </span>
-                <div className="flex flex-wrap gap-1.5">
-                  {availableTags.map((tag) => {
-                    const active = draft.tags.includes(tag.name);
-                    return (
-                      <button
-                        key={tag.id}
-                        type="button"
-                        onClick={() =>
-                          setDraft((prev) => ({
-                            ...prev,
-                            tags: toggleItem(prev.tags, tag.name),
-                          }))
-                        }
-                        className={`rounded-lg border px-2.5 py-1 text-xs font-medium transition-crisp ${
-                          active
-                            ? 'border-[var(--accent-primary)] bg-[var(--accent-soft)] text-[var(--accent-ink)]'
-                            : 'border-[var(--border-hairline)] bg-[var(--bg-canvas)] text-[var(--text-secondary)]'
-                        }`}
-                      >
-                        {tag.name}
                       </button>
                     );
                   })}
