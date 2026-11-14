@@ -322,4 +322,57 @@ describe('MediaDetailPage', () => {
 
     expect(screen.getByRole('heading', { name: 'Mature Title' })).toBeInTheDocument();
   });
+
+  it('renders floating sticky z-30 Back button over banner and avoids overlapping cover when banner is missing', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi
+        .fn()
+        .mockResolvedValueOnce(
+          new Response(JSON.stringify({ data: { Media: makeDetail() } }), {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' },
+          }),
+        )
+        .mockResolvedValueOnce(
+          new Response(
+            JSON.stringify({
+              data: {
+                Media: makeDetail({
+                  id: 2,
+                  bannerImage: null,
+                  title: { romaji: 'No Banner Title', english: 'No Banner Title', native: null },
+                }),
+              },
+            }),
+            {
+              status: 200,
+              headers: { 'Content-Type': 'application/json' },
+            },
+          ),
+        ),
+    );
+
+    renderMediaRoute('/media/1');
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: 'Sousou no Frieren' })).toBeInTheDocument();
+    });
+
+    const backButton = screen.getByRole('button', { name: /back/i });
+    expect(backButton.parentElement?.className).toContain('sticky');
+    expect(backButton.parentElement?.className).toContain('z-30');
+    expect(backButton.parentElement?.nextElementSibling?.className).toContain('-mt-12');
+
+    // Also render without bannerImage -> no negative top margin pulling card under Back button
+    renderMediaRoute('/media/2');
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: 'No Banner Title' })).toBeInTheDocument();
+    });
+
+    const allBackButtons = screen.getAllByRole('button', { name: /back/i });
+    const noBannerBack = allBackButtons[allBackButtons.length - 1];
+    expect(noBannerBack.parentElement?.className).toContain('sticky');
+    expect(noBannerBack.parentElement?.className).toContain('z-30');
+    expect(noBannerBack.parentElement?.nextElementSibling?.className).not.toContain('-mt-12');
+  });
 });

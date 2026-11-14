@@ -118,6 +118,14 @@ body {
   .pb-safe-nav {
     padding-bottom: max(0.25rem, env(safe-area-inset-bottom, 0px));
   }
+
+  .top-safe {
+    top: env(safe-area-inset-top, 0px);
+  }
+
+  .top-safe-float {
+    top: calc(env(safe-area-inset-top, 0px) + 0.75rem);
+  }
 }
 
 .no-scrollbar {

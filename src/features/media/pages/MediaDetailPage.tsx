@@ -102,18 +102,28 @@ export function MediaDetailPage() {
   };
 
   return (
-    <div className="space-y-4 md:space-y-6">
-      <button
-        type="button"
-        onClick={() => navigate(-1)}
-        className="inline-flex items-center gap-1.5 text-xs font-semibold text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
+    <div className="flex flex-col">
+      <div
+        className={`pointer-events-none sticky z-30 flex justify-start ${media.bannerImage
+            ? 'top-safe pl-3 pt-3 md:top-0 md:pl-4 md:pt-4'
+            : 'top-safe-float mb-3 md:top-4 md:mb-4'
+          }`}
       >
-        <ArrowLeft className="h-4 w-4" strokeWidth={1.75} />
-        Back
-      </button>
+        <button
+          type="button"
+          onClick={() => navigate(-1)}
+          className="pointer-events-auto inline-flex h-9 items-center gap-1.5 rounded-full border border-[var(--border-hairline)] bg-[var(--bg-glass)] px-3.5 text-xs font-semibold text-[var(--text-primary)] shadow-token-sm backdrop-blur-md transition-crisp hover:bg-[var(--bg-surface)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40"
+        >
+          <ArrowLeft className="h-4 w-4" strokeWidth={1.75} />
+          Back
+        </button>
+      </div>
 
       {/* Banner + Header */}
-      <section className="overflow-hidden rounded-2xl border border-[var(--border-hairline)] bg-[var(--bg-surface)] shadow-token-xs">
+      <section
+        className={`overflow-hidden rounded-2xl border border-[var(--border-hairline)] bg-[var(--bg-surface)] shadow-token-xs ${media.bannerImage ? '-mt-12 md:-mt-[60px]' : ''
+          }`}
+      >
         {media.bannerImage ? (
           <div className="h-32 w-full overflow-hidden bg-[var(--bg-subtle)] sm:h-40 md:h-52">
             <img
@@ -127,9 +137,8 @@ export function MediaDetailPage() {
 
         <div className="grid grid-cols-[96px_1fr] items-end gap-x-3.5 gap-y-3 p-3.5 sm:grid-cols-[116px_1fr] sm:gap-x-5 sm:gap-y-2.5 md:grid-cols-[144px_1fr] md:p-6">
           <div
-            className={`aspect-[2/3] w-full overflow-hidden rounded-[10px] border border-[var(--border-hairline)] bg-[var(--bg-subtle)] shadow-token-sm sm:row-span-2 ${
-              media.bannerImage ? '-mt-12 sm:-mt-16' : ''
-            }`}
+            className={`aspect-[2/3] w-full overflow-hidden rounded-[10px] border border-[var(--border-hairline)] bg-[var(--bg-subtle)] shadow-token-sm sm:row-span-2 ${media.bannerImage ? '-mt-12 sm:-mt-16' : ''
+              }`}
           >
             {coverUrl ? (
               <img src={coverUrl} alt={title} className="h-full w-full object-cover" />
@@ -199,7 +208,7 @@ export function MediaDetailPage() {
       <div
         role="tablist"
         aria-label="Media detail sections"
-        className="no-scrollbar flex gap-1 overflow-x-auto rounded-[10px] border border-[var(--border-hairline)] bg-[var(--bg-subtle)] p-1"
+        className="no-scrollbar mt-4 flex gap-1 overflow-x-auto rounded-[10px] border border-[var(--border-hairline)] bg-[var(--bg-subtle)] p-1 md:mt-6"
       >
         {TABS.map((tab) => (
           <button
@@ -208,27 +217,28 @@ export function MediaDetailPage() {
             type="button"
             aria-selected={activeTab === tab.id}
             onClick={() => setActiveTab(tab.id)}
-            className={`min-h-9 shrink-0 rounded-lg px-3.5 py-1.5 text-xs font-semibold transition-crisp ${
-              activeTab === tab.id
-                ? 'bg-[var(--bg-surface)] text-[var(--text-primary)] shadow-token-xs'
-                : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
-            }`}
+            className={`min-h-9 shrink-0 rounded-lg px-3.5 py-1.5 text-xs font-semibold transition-crisp ${activeTab === tab.id
+              ? 'bg-[var(--bg-surface)] text-[var(--text-primary)] shadow-token-xs'
+              : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
+              }`}
           >
             {tab.label}
           </button>
         ))}
       </div>
 
-      <MediaDetailTabs
-        media={media}
-        activeTab={activeTab}
-        preferredLanguage={preferredLanguage}
-        allowAdult={allowAdult || revealedAdult}
-        onSelectMedia={(selected) => navigate(`/media/${selected.id}`)}
-        onSelectCharacter={(id) => navigate(`/character/${id}`)}
-        onSelectStaff={(id) => navigate(`/staff/${id}`)}
-        onSelectStudio={(id) => navigate(`/studio/${id}`)}
-      />
+      <div className="mt-4 md:mt-6">
+        <MediaDetailTabs
+          media={media}
+          activeTab={activeTab}
+          preferredLanguage={preferredLanguage}
+          allowAdult={allowAdult || revealedAdult}
+          onSelectMedia={(selected) => navigate(`/media/${selected.id}`)}
+          onSelectCharacter={(id) => navigate(`/character/${id}`)}
+          onSelectStaff={(id) => navigate(`/staff/${id}`)}
+          onSelectStudio={(id) => navigate(`/studio/${id}`)}
+        />
+      </div>
 
       <ListEditorModal
         open={editorOpen}
