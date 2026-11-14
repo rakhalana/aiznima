@@ -102,7 +102,12 @@ export async function anilistRequest<
       signal: options?.signal,
     });
   } catch (err) {
-    if (err instanceof DOMException && err.name === 'AbortError') {
+    if (
+      typeof err === 'object' &&
+      err !== null &&
+      'name' in err &&
+      err.name === 'AbortError'
+    ) {
       throw err;
     }
     logger.warn('Network failure calling AniList API', { err: String(err) });

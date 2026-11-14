@@ -1,0 +1,114 @@
+import { QueryClientProvider } from '@tanstack/react-query';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { AppContent } from './App';
+import { createAppQueryClient } from '@/shared/api/queryClient';
+import { useAuthStore } from '@/shared/stores/useAuthStore';
+import { useToastStore } from '@/shared/stores/useToastStore';
+
+function renderWithRoute(initialEntry: string) {
+  const testQueryClient = createAppQueryClient();
+  return render(
+    <QueryClientProvider client={testQueryClient}>
+      <MemoryRouter initialEntries={[initialEntry]}>
+        <AppContent />
+      </MemoryRouter>
+    </QueryClientProvider>,
+  );
+}
+
+describe('AppShell, AuthGuard & AuthCallback routes', () => {
+  beforeEach(async () => {
+    window.localStorage.clear();
+    await useAuthStore.getState().logout();
+    useAuthStore.setState({ isHydrated: true });
+    useToastStore.setState({ toasts: [], rateLimitUntil: null, isOffline: false });
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        new Response(
+          JSON.stringify({
+            data: {
+              Viewer: {
+                id: 1,
+                name: 'TestUser',
+                about: null,
+                avatar: null,
+                bannerImage: null,
+                siteUrl: 'https://anilist.co/user/TestUser',
+                options: { titleLanguage: 'ROMAJI', displayAdultContent: false, profileColor: 'blue' },
+                mediaListOptions: { scoreFormat: 'POINT_100', rowOrder: 'score' },
+                statistics: null,
+                favourites: null,
+              },
+            },
+          }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } },
+        ),
+      ),
+    );
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it('shows Guest gateway on protected /my-list route and opens LoginPromptModal', () => {
+    renderWithRoute('/my-list');
+
+    expect(
+      screen.getByRole('heading', { name: /track your anime & manga/i }),
+    ).toBeInTheDocument();
+
+    const loginButtons = screen.getAllByRole('button', { name: /login with anilist/i });
+    fireEvent.click(loginButtons[0]!);
+
+    expect(screen.getByRole('dialog', { name: /log in with anilist/i })).toBeInTheDocument();
+  });
+
+  it('allows public user lookup from /profile Guest gateway', () => {
+    renderWithRoute('/profile');
+
+    const input = screen.getByPlaceholderText(/enter anilist username/i);
+    fireEvent.change(input, { target: { value: 'Natsu' } });
+    fireEvent.click(screen.getByRole('button', { name: /lookup/i }));
+
+    expect(
+      screen.getByRole('heading', { name: /public profile: natsu/i }),
+    ).toBeInTheDocument();
+  });
+
+  it('completes OAuth callback and redirects back to saved returnTo route', async () => {
+    window.localStorage.setItem('aiznima:oauth_state', 'state-abc');
+    window.localStorage.setItem('aiznima:oauth_return_to', '/schedule');
+
+    const originalLocation = window.location;
+    Object.defineProperty(window, 'location', {
+      configurable: true,
+      value: {
+        ...originalLocation,
+        href: 'http://localhost:5173/auth/callback#access_token=live-token&expires_in=3600&state=state-abc',
+        pathname: '/auth/callback',
+        hash: '#access_token=live-token&expires_in=3600&state=state-abc',
+      },
+    });
+
+    renderWithRoute('/auth/callback');
+
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: /airing schedule/i })).toBeInTheDocument();
+    });
+    expect(useAuthStore.getState().accessToken).toBe('live-token');
+
+    Object.defineProperty(window, 'location', {
+      configurable: true,
+      value: originalLocation,
+    });
+  });
+
+  it('renders 404 NotFoundPage for unknown paths', () => {
+    renderWithRoute('/does-not-exist');
+    expect(screen.getByRole('heading', { name: /page not found/i })).toBeInTheDocument();
+  });
+});

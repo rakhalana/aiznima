@@ -1,11 +1,17 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import { App } from './App';
+import { useAuthStore } from '@/shared/stores/useAuthStore';
+import { usePrefsStore } from '@/shared/stores/usePrefsStore';
 
-describe('Aiznima scaffold', () => {
-  it('renders the application shell title and phase badge', () => {
+describe('Aiznima App root', () => {
+  it('renders the responsive AppShell and Discover page', async () => {
     render(<App />);
-    expect(screen.getByRole('heading', { name: /aiznima/i })).toBeInTheDocument();
-    expect(screen.getByText(/phase 2 core ready/i)).toBeInTheDocument();
+    await waitFor(() => {
+      expect(useAuthStore.getState().isHydrated).toBe(true);
+      expect(usePrefsStore.getState().isHydrated).toBe(true);
+    });
+    expect(screen.getAllByText('Aiznima').length).toBeGreaterThan(0);
+    expect(screen.getByRole('heading', { name: /discover/i })).toBeInTheDocument();
   });
 });
