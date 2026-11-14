@@ -179,4 +179,69 @@ describe('CharacterDetailPage', () => {
     renderCharacterRoute('/character/not-a-number');
     expect(screen.getByRole('heading', { name: /invalid character id/i })).toBeInTheDocument();
   });
+
+  it('clamps long character About bio with click-to-expand Read more', async () => {
+    const longDescription = `<p>${'Frieren is an elven mage who traveled with the Hero Party for ten years. '.repeat(6)}</p>`;
+
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (_url, init) => {
+        const body = JSON.parse(String(init?.body ?? '{}')) as { query?: string };
+
+        if (body.query?.includes('query CharacterDetail')) {
+          return new Response(
+            JSON.stringify({
+              data: {
+                Character: {
+                  id: 17,
+                  name: { full: 'Frieren', native: 'フリーレン', alternative: [], alternativeSpoiler: [] },
+                  image: { medium: null, large: null },
+                  favourites: 24500,
+                  description: longDescription,
+                  gender: 'Female',
+                  dateOfBirth: { year: null, month: null, day: null },
+                  age: '1000+',
+                  bloodType: null,
+                  siteUrl: 'https://anilist.co/character/17',
+                },
+              },
+            }),
+            { status: 200, headers: { 'Content-Type': 'application/json' } },
+          );
+        }
+
+        return new Response(
+          JSON.stringify({
+            data: {
+              Character: {
+                id: 17,
+                media: {
+                  pageInfo: { total: 0, perPage: 18, currentPage: 1, lastPage: 1, hasNextPage: false },
+                  edges: [],
+                },
+              },
+            },
+          }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } },
+        );
+      }),
+    );
+
+    renderCharacterRoute('/character/17');
+
+    const aboutText = await screen.findByText(/Frieren is an elven mage/);
+    expect(aboutText.closest('.max-h-28')).not.toBeNull();
+
+    const readMoreBtn = screen.getByRole('button', { name: /read more/i });
+    expect(readMoreBtn).toHaveAttribute('aria-expanded', 'false');
+
+    fireEvent.click(readMoreBtn);
+    const showLessBtn = screen.getByRole('button', { name: /show less/i });
+    expect(showLessBtn).toHaveAttribute('aria-expanded', 'true');
+    expect(aboutText.closest('.max-h-28')).toBeNull();
+
+    fireEvent.click(showLessBtn);
+    expect(screen.getByRole('button', { name: /read more/i })).toHaveAttribute('aria-expanded', 'false');
+    expect(aboutText.closest('.max-h-28')).not.toBeNull();
+  });
 });

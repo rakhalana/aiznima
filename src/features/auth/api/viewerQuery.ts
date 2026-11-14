@@ -14,6 +14,7 @@ export const USER_PROFILE_FIELDS = `
   }
   bannerImage
   siteUrl
+  unreadNotificationCount
   options {
     titleLanguage
     displayAdultContent

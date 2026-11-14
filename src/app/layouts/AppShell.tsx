@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import {
+  Bell,
   Bookmark,
   Calendar,
   Compass,
@@ -15,6 +16,7 @@ import {
 } from 'lucide-react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { useLoginPromptStore } from '@/features/auth/stores/useLoginPromptStore';
+import { useUnreadNotificationCount } from '@/features/notifications/api/notificationQueries';
 import { Button } from '@/shared/components/Button';
 import { useAuthStore } from '@/shared/stores/useAuthStore';
 import { usePrefsStore } from '@/shared/stores/usePrefsStore';
@@ -35,6 +37,7 @@ const NAV_ITEMS = [
 export function AppShell({ children }: AppShellProps) {
   const location = useLocation();
   const navigate = useNavigate();
+  const unreadNotificationCount = useUnreadNotificationCount();
 
   const theme = usePrefsStore((state) => state.theme);
   const toggleTheme = usePrefsStore((state) => state.toggleTheme);
@@ -117,6 +120,35 @@ export function AppShell({ children }: AppShellProps) {
               </NavLink>
             );
           })}
+
+          <NavLink
+            to="/notifications"
+            className={({ isActive }) =>
+              `flex items-center justify-between gap-2 rounded-[10px] px-3 py-2.5 text-sm font-medium transition-crisp focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 ${
+                isActive
+                  ? 'bg-[var(--accent-soft)] text-[var(--accent-ink)] font-semibold'
+                  : 'text-[var(--text-secondary)] hover:bg-[var(--bg-subtle)] hover:text-[var(--text-primary)]'
+              }`
+            }
+          >
+            {({ isActive }) => (
+              <>
+                <span className="flex items-center gap-3">
+                  <Bell
+                    className="h-[18px] w-[18px] shrink-0"
+                    strokeWidth={isActive ? 2 : 1.75}
+                    aria-hidden="true"
+                  />
+                  <span>Notifications</span>
+                </span>
+                {unreadNotificationCount > 0 ? (
+                  <span className="tabular-nums rounded-full bg-[var(--accent-primary)] px-1.5 py-0.5 text-[10px] font-bold leading-none text-white">
+                    {unreadNotificationCount > 99 ? '99+' : unreadNotificationCount}
+                  </span>
+                ) : null}
+              </>
+            )}
+          </NavLink>
 
           <NavLink
             to="/settings"

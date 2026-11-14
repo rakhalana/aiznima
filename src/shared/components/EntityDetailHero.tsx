@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { openExternalUrl } from '@/platform';
 import { formatCompactCount } from '@/shared/utils/formatters';
 import { sanitizeHtml } from '@/shared/utils/sanitizeHtml';
+import { CollapsibleHtmlSection } from './CollapsibleHtmlSection';
 
 export interface EntityMetaItem {
   label: string;
@@ -141,13 +142,11 @@ export function EntityDetailHero({
       </section>
 
       {cleanBio ? (
-        <section className="rounded-xl border border-[var(--border-hairline)] bg-[var(--bg-surface)] p-3.5 shadow-token-xs sm:p-4 md:p-5">
-          <h2 className="mb-2 text-sm font-semibold text-[var(--text-primary)]">About</h2>
-          <div
-            className="prose-sm max-w-none space-y-2 text-sm leading-relaxed text-[var(--text-secondary)] [&_a]:text-[var(--accent-primary)] [&_a]:underline"
-            dangerouslySetInnerHTML={{ __html: cleanBio }}
-          />
-        </section>
+        <CollapsibleHtmlSection
+          title="About"
+          html={cleanBio}
+          className="p-3.5 sm:p-4 md:p-5"
+        />
       ) : null}
     </div>
   );

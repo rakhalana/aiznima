@@ -198,3 +198,33 @@ export function formatCompactCount(value: number | null | undefined): string {
   }
   return String(Math.round(value));
 }
+
+export function formatRelativeTime(
+  unixSeconds: number | null | undefined,
+  nowMs = Date.now(),
+): string {
+  if (!unixSeconds || unixSeconds <= 0) {
+    return 'Unknown time';
+  }
+
+  const diffSeconds = Math.max(0, Math.floor(nowMs / 1000) - unixSeconds);
+  if (diffSeconds < 60) {
+    return 'Just now';
+  }
+  if (diffSeconds < 3600) {
+    return `${Math.floor(diffSeconds / 60)}m ago`;
+  }
+  if (diffSeconds < 86400) {
+    return `${Math.floor(diffSeconds / 3600)}h ago`;
+  }
+  if (diffSeconds < 604800) {
+    return `${Math.floor(diffSeconds / 86400)}d ago`;
+  }
+  if (diffSeconds < 2592000) {
+    return `${Math.floor(diffSeconds / 604800)}w ago`;
+  }
+  if (diffSeconds < 31536000) {
+    return `${Math.floor(diffSeconds / 2592000)}mo ago`;
+  }
+  return `${Math.floor(diffSeconds / 31536000)}y ago`;
+}

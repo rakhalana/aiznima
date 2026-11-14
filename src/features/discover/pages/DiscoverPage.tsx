@@ -1,36 +1,32 @@
+import { Bell } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useDiscoverQuery } from '@/features/discover/api/discoverQueries';
 import { HeroBanner } from '@/features/discover/components/HeroBanner';
 import { MediaCarousel } from '@/features/discover/components/MediaCarousel';
+import { useUnreadNotificationCount } from '@/features/notifications/api/notificationQueries';
 import { NetworkError } from '@/shared/api/graphqlClient';
-import type { MediaSummary, MediaType } from '@/shared/api/types';
+import type { MediaSummary } from '@/shared/api/types';
 import { MediaCardSkeleton } from '@/shared/components/Skeleton';
 import { ErrorState } from '@/shared/components/StateFeedback';
 import { useIsAdultFilter } from '@/shared/hooks/useIsAdultFilter';
 import { usePreferredTitleLanguage } from '@/shared/hooks/usePreferredTitleLanguage';
-import { usePrefsStore } from '@/shared/stores/usePrefsStore';
 
 export function DiscoverPage() {
   const navigate = useNavigate();
-  const activeMediaType = usePrefsStore((state) => state.activeMediaType);
-  const setActiveMediaType = usePrefsStore((state) => state.setActiveMediaType);
   const { isAdultQueryArg } = useIsAdultFilter();
   const preferredLanguage = usePreferredTitleLanguage();
+  const unreadNotificationCount = useUnreadNotificationCount();
 
   const { data, isLoading, isError, isRefetchError, error, refetch } =
-    useDiscoverQuery(activeMediaType, isAdultQueryArg);
+    useDiscoverQuery('ANIME', isAdultQueryArg);
 
   const handleSelectMedia = (media: MediaSummary) => {
     navigate(`/media/${media.id}`);
   };
 
-  const switchMediaType = (type: MediaType) => {
-    void setActiveMediaType(type);
-  };
-
   return (
     <div className="space-y-5 md:space-y-7">
-      <header className="flex flex-wrap items-center justify-between gap-2.5 sm:gap-3">
+      <header className="flex items-start justify-between gap-3">
         <div>
           <h1 className="text-xl font-bold tracking-tight md:text-2xl">Discover</h1>
           <p className="mt-0.5 text-xs text-[var(--text-secondary)] md:text-sm">
@@ -38,28 +34,23 @@ export function DiscoverPage() {
           </p>
         </div>
 
-        <div
-          role="tablist"
-          aria-label="Media type"
-          className="inline-flex rounded-[10px] border border-[var(--border-hairline)] bg-[var(--bg-subtle)] p-1"
+        <button
+          type="button"
+          onClick={() => navigate('/notifications')}
+          aria-label={
+            unreadNotificationCount > 0
+              ? `Notifications (${unreadNotificationCount} unread)`
+              : 'Notifications'
+          }
+          className="relative inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[var(--border-hairline)] bg-[var(--bg-surface)] text-[var(--text-secondary)] shadow-token-xs transition-crisp hover:bg-[var(--bg-subtle)] hover:text-[var(--text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 md:hidden"
         >
-          {(['ANIME', 'MANGA'] as const).map((type) => (
-            <button
-              key={type}
-              role="tab"
-              type="button"
-              aria-selected={activeMediaType === type}
-              onClick={() => switchMediaType(type)}
-              className={`rounded-lg px-3.5 py-1.5 text-xs font-semibold transition-crisp ${
-                activeMediaType === type
-                  ? 'bg-[var(--bg-surface)] text-[var(--text-primary)] shadow-token-xs'
-                  : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
-              }`}
-            >
-              {type === 'ANIME' ? 'Anime' : 'Manga'}
-            </button>
-          ))}
-        </div>
+          <Bell className="h-[18px] w-[18px]" strokeWidth={1.75} aria-hidden="true" />
+          {unreadNotificationCount > 0 ? (
+            <span className="tabular-nums absolute -right-1 -top-1 inline-flex min-w-[18px] items-center justify-center rounded-full bg-[var(--accent-primary)] px-1 text-[10px] font-bold leading-[18px] text-white shadow-token-xs">
+              {unreadNotificationCount > 99 ? '99+' : unreadNotificationCount}
+            </span>
+          ) : null}
+        </button>
       </header>
 
       {isLoading && !data ? (

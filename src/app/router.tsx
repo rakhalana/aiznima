@@ -4,6 +4,7 @@ import { CharacterDetailPage } from '@/features/character/pages/CharacterDetailP
 import { DiscoverPage } from '@/features/discover/pages/DiscoverPage';
 import { MediaDetailPage } from '@/features/media/pages/MediaDetailPage';
 import { MyListPage } from '@/features/my-list/pages/MyListPage';
+import { NotificationsPage } from '@/features/notifications/pages/NotificationsPage';
 import { ProfilePage } from '@/features/profile/pages/ProfilePage';
 import { SchedulePage } from '@/features/schedule/pages/SchedulePage';
 import { SearchPage } from '@/features/search/pages/SearchPage';
@@ -24,6 +25,7 @@ export function AppRoutes() {
       <Route path="/staff/:id" element={<StaffDetailPage />} />
       <Route path="/studio/:id" element={<StudioDetailPage />} />
       <Route path="/my-list" element={<MyListPage />} />
+      <Route path="/notifications" element={<NotificationsPage />} />
       <Route path="/profile" element={<ProfilePage />} />
       <Route path="/user/:username" element={<PublicUserPage />} />
       <Route path="/settings" element={<SettingsPage />} />

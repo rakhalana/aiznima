@@ -1,6 +1,6 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { DiscoverPage } from '@/features/discover/pages/DiscoverPage';
 import type { MediaSummary } from '@/shared/api/types';
@@ -55,17 +55,34 @@ describe('DiscoverPage', () => {
     vi.unstubAllGlobals();
   });
 
-  it('renders Anime sections and HeroBanner, then switches to Manga feed', async () => {
+  it('renders Anime sections and HeroBanner without Anime/Manga tabs, and navigates via Discover Notification button', async () => {
+    useAuthStore.setState({
+      accessToken: 'test-token',
+      isHydrated: true,
+      viewer: {
+        id: 1,
+        name: 'Tester',
+        about: null,
+        avatar: null,
+        bannerImage: null,
+        siteUrl: null,
+        unreadNotificationCount: 3,
+        options: null,
+        mediaListOptions: null,
+        statistics: null,
+      },
+    });
+
     const fetchMock = vi.fn().mockImplementation(async (_url, init) => {
       const body = JSON.parse(String(init?.body ?? '{}')) as { query?: string };
-      if (body.query?.includes('DiscoverManga')) {
+      if (body.query?.includes('UnreadNotificationCount')) {
         return new Response(
           JSON.stringify({
             data: {
-              trending: { media: [makeMedia({ id: 201, type: 'MANGA', format: 'MANGA', title: { romaji: 'Vagabond', english: 'Vagabond', native: null } })] },
-              popular: { media: [makeMedia({ id: 202, type: 'MANGA', format: 'MANGA', title: { romaji: 'Berserk', english: 'Berserk', native: null } })] },
-              releasing: { media: [makeMedia({ id: 203, type: 'MANGA', format: 'MANGA', title: { romaji: 'Kingdom', english: 'Kingdom', native: null } })] },
-              topRated: { media: [makeMedia({ id: 204, type: 'MANGA', format: 'MANGA', title: { romaji: 'Monster', english: 'Monster', native: null } })] },
+              Viewer: {
+                id: 1,
+                unreadNotificationCount: 3,
+              },
             },
           }),
           { status: 200, headers: { 'Content-Type': 'application/json' } },
@@ -86,11 +103,27 @@ describe('DiscoverPage', () => {
     });
     vi.stubGlobal('fetch', fetchMock);
 
+    const LocationSpy = () => {
+      const loc = useLocation();
+      return <div data-testid="path-echo">{loc.pathname}</div>;
+    };
+
     const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
     render(
       <QueryClientProvider client={queryClient}>
-        <MemoryRouter>
-          <DiscoverPage />
+        <MemoryRouter initialEntries={['/']}>
+          <Routes>
+            <Route
+              path="/"
+              element={
+                <>
+                  <DiscoverPage />
+                  <LocationSpy />
+                </>
+              }
+            />
+            <Route path="/notifications" element={<LocationSpy />} />
+          </Routes>
         </MemoryRouter>
       </QueryClientProvider>,
     );
@@ -104,13 +137,18 @@ describe('DiscoverPage', () => {
     expect(screen.getByRole('heading', { name: 'Trending Now' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Top Rated Anime' })).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('tab', { name: 'Manga' }));
+    expect(screen.queryByRole('tab', { name: 'Anime' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('tab', { name: 'Manga' })).not.toBeInTheDocument();
 
+    const notifButton = screen.getByRole('button', { name: /notifications/i });
+    expect(notifButton).toHaveTextContent('3');
+
+    fireEvent.click(notifButton);
     await waitFor(() => {
-      expect(screen.getByRole('heading', { name: 'Trending Manga' })).toBeInTheDocument();
+      expect(screen.getByTestId('path-echo')).toHaveTextContent('/notifications');
     });
-    expect(screen.getByRole('heading', { level: 2, name: 'Vagabond' })).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: 'Top Rated Manga' })).toBeInTheDocument();
+
+    useAuthStore.setState({ accessToken: null, viewer: null });
   });
 
   it('keeps cached sections visible with cached fallback banner when a refetch fails (AF-03/AF-04)', async () => {

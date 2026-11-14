@@ -1,7 +1,8 @@
-import { type ReactNode, useEffect, useMemo, useRef, useState } from 'react';
-import { Briefcase, ChevronDown, ExternalLink, Play, User } from 'lucide-react';
+import { useState, type ReactNode } from 'react';
+import { Briefcase, ExternalLink, Play, User } from 'lucide-react';
 import { openExternalUrl } from '@/platform';
 import type { MediaDetail, MediaSummary, UserTitleLanguage } from '@/shared/api/types';
+import { CollapsibleHtmlSection } from '@/shared/components/CollapsibleHtmlSection';
 import { EntityPortraitCard } from '@/shared/components/EntityPortraitCard';
 import { MediaCard } from '@/shared/components/MediaCard';
 import { EmptyState } from '@/shared/components/StateFeedback';
@@ -18,94 +19,6 @@ export type MediaDetailTab =
   | 'characters'
   | 'staff'
   | 'recommendations';
-
-const COLLAPSED_SYNOPSIS_HEIGHT = 112;
-
-interface SynopsisSectionProps {
-  html: string;
-}
-
-function SynopsisSection({ html }: SynopsisSectionProps) {
-  const plainLength = useMemo(
-    () => html.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim().length,
-    [html],
-  );
-  const lineBreakCount = useMemo(
-    () => (html.match(/<(?:p|br)\b/gi) ?? []).length,
-    [html],
-  );
-
-  const [expanded, setExpanded] = useState(false);
-  const [canCollapse, setCanCollapse] = useState(
-    () => plainLength > 200 || lineBreakCount >= 3,
-  );
-  const contentRef = useRef<HTMLDivElement | null>(null);
-
-  useEffect(() => {
-    const el = contentRef.current;
-    if (!el) {
-      return undefined;
-    }
-
-    const measure = () => {
-      if (el.scrollHeight > 0) {
-        setCanCollapse(el.scrollHeight > COLLAPSED_SYNOPSIS_HEIGHT + 4);
-      }
-    };
-
-    measure();
-    if (typeof ResizeObserver !== 'undefined') {
-      const observer = new ResizeObserver(measure);
-      observer.observe(el);
-      return () => observer.disconnect();
-    }
-    return undefined;
-  }, [html]);
-
-  const isClamped = canCollapse && !expanded;
-
-  return (
-    <section className="rounded-xl border border-[var(--border-hairline)] bg-[var(--bg-surface)] p-4 shadow-token-xs md:p-5">
-      <h2 className="mb-2 text-sm font-semibold text-[var(--text-primary)]">Synopsis</h2>
-      <div
-        onClick={(event) => {
-          if (isClamped && !(event.target as HTMLElement).closest('a')) {
-            setExpanded(true);
-          }
-        }}
-        className={`relative ${isClamped ? 'max-h-28 cursor-pointer overflow-hidden' : ''}`}
-      >
-        <div
-          ref={contentRef}
-          className="prose-sm max-w-none space-y-2 text-sm leading-relaxed text-[var(--text-secondary)] [&_a]:text-[var(--accent-primary)] [&_a]:underline"
-          dangerouslySetInnerHTML={{ __html: html }}
-        />
-        {isClamped ? (
-          <div
-            aria-hidden="true"
-            className="pointer-events-none absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-[var(--bg-surface)] to-transparent"
-          />
-        ) : null}
-      </div>
-
-      {canCollapse ? (
-        <button
-          type="button"
-          aria-expanded={expanded}
-          onClick={() => setExpanded((prev) => !prev)}
-          className="mt-2 inline-flex items-center gap-1 rounded text-xs font-semibold text-[var(--accent-primary)] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40"
-        >
-          <span>{expanded ? 'Show less' : 'Read more'}</span>
-          <ChevronDown
-            className={`h-3.5 w-3.5 transition-transform duration-200 ${expanded ? 'rotate-180' : ''}`}
-            strokeWidth={2}
-            aria-hidden="true"
-          />
-        </button>
-      ) : null}
-    </section>
-  );
-}
 
 interface MediaDetailTabsProps {
   media: MediaDetail;
@@ -228,7 +141,9 @@ export function MediaDetailTabs({
 
     return (
       <div className="space-y-4 md:space-y-6">
-        {cleanSynopsis ? <SynopsisSection html={cleanSynopsis} /> : null}
+        {cleanSynopsis ? (
+          <CollapsibleHtmlSection title="Synopsis" html={cleanSynopsis} />
+        ) : null}
 
         <section className="rounded-xl border border-[var(--border-hairline)] bg-[var(--bg-surface)] p-4 shadow-token-xs md:p-5">
           <h2 className="mb-3 text-sm font-semibold text-[var(--text-primary)]">

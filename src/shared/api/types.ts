@@ -492,6 +492,7 @@ export interface UserProfile {
   } | null;
   bannerImage: string | null;
   siteUrl: string | null;
+  unreadNotificationCount?: number | null;
   options: UserOptions | null;
   mediaListOptions: UserMediaListOptions | null;
   statistics: {
@@ -534,3 +535,146 @@ export interface UpdateUserInput {
   scoreFormat?: ScoreFormat;
   profileColor?: string;
 }
+
+export type NotificationType =
+  | 'ACTIVITY_MESSAGE'
+  | 'ACTIVITY_REPLY'
+  | 'FOLLOWING'
+  | 'ACTIVITY_MENTION'
+  | 'THREAD_COMMENT_MENTION'
+  | 'THREAD_SUBSCRIBED'
+  | 'THREAD_COMMENT_REPLY'
+  | 'AIRING'
+  | 'ACTIVITY_LIKE'
+  | 'ACTIVITY_REPLY_LIKE'
+  | 'THREAD_LIKE'
+  | 'THREAD_COMMENT_LIKE'
+  | 'ACTIVITY_REPLY_SUBSCRIBED'
+  | 'RELATED_MEDIA_ADDITION'
+  | 'MEDIA_DATA_CHANGE'
+  | 'MEDIA_MERGE'
+  | 'MEDIA_DELETION'
+  | 'MEDIA_SUBMISSION_UPDATE'
+  | 'STAFF_SUBMISSION_UPDATE'
+  | 'CHARACTER_SUBMISSION_UPDATE';
+
+export interface NotificationUserRef {
+  id: number;
+  name: string;
+  avatar?: {
+    medium?: string | null;
+    large?: string | null;
+  } | null;
+}
+
+export interface NotificationMediaRef {
+  id: number;
+  type: MediaType | null;
+  isAdult?: boolean | null;
+  title: MediaTitle;
+  coverImage?: MediaCoverImage | null;
+  siteUrl?: string | null;
+}
+
+export interface AiringNotificationItem {
+  id: number;
+  type: 'AIRING';
+  animeId: number;
+  episode: number;
+  contexts: string[] | null;
+  createdAt: number | null;
+  media: NotificationMediaRef | null;
+}
+
+export interface FollowingNotificationItem {
+  id: number;
+  type: 'FOLLOWING';
+  userId: number;
+  context: string | null;
+  createdAt: number | null;
+  user: NotificationUserRef | null;
+}
+
+export interface ActivityNotificationItem {
+  id: number;
+  type:
+    | 'ACTIVITY_MESSAGE'
+    | 'ACTIVITY_REPLY'
+    | 'ACTIVITY_MENTION'
+    | 'ACTIVITY_LIKE'
+    | 'ACTIVITY_REPLY_LIKE'
+    | 'ACTIVITY_REPLY_SUBSCRIBED';
+  userId: number;
+  activityId: number;
+  context: string | null;
+  createdAt: number | null;
+  user: NotificationUserRef | null;
+  activity?: { siteUrl?: string | null } | null;
+  message?: { siteUrl?: string | null } | null;
+}
+
+export interface ThreadNotificationItem {
+  id: number;
+  type:
+    | 'THREAD_COMMENT_MENTION'
+    | 'THREAD_COMMENT_REPLY'
+    | 'THREAD_SUBSCRIBED'
+    | 'THREAD_COMMENT_LIKE'
+    | 'THREAD_LIKE';
+  userId: number;
+  commentId?: number | null;
+  threadId?: number | null;
+  context: string | null;
+  createdAt: number | null;
+  user: NotificationUserRef | null;
+  thread?: { id: number; title?: string | null; siteUrl?: string | null } | null;
+  comment?: { id: number; siteUrl?: string | null } | null;
+}
+
+export interface MediaChangeNotificationItem {
+  id: number;
+  type:
+    | 'RELATED_MEDIA_ADDITION'
+    | 'MEDIA_DATA_CHANGE'
+    | 'MEDIA_MERGE'
+    | 'MEDIA_DELETION';
+  mediaId?: number | null;
+  context: string | null;
+  reason?: string | null;
+  deletedMediaTitle?: string | null;
+  deletedMediaTitles?: string[] | null;
+  createdAt: number | null;
+  media?: NotificationMediaRef | null;
+}
+
+export interface SubmissionUpdateNotificationItem {
+  id: number;
+  type:
+    | 'MEDIA_SUBMISSION_UPDATE'
+    | 'STAFF_SUBMISSION_UPDATE'
+    | 'CHARACTER_SUBMISSION_UPDATE';
+  contexts: string[] | null;
+  status: string | null;
+  notes?: string | null;
+  submittedTitle?: string | null;
+  createdAt: number | null;
+  media?: NotificationMediaRef | null;
+  staff?: {
+    id: number;
+    name?: { full?: string | null } | null;
+    image?: { medium?: string | null } | null;
+  } | null;
+  character?: {
+    id: number;
+    name?: { full?: string | null } | null;
+    image?: { medium?: string | null } | null;
+  } | null;
+}
+
+export type AppNotification =
+  | AiringNotificationItem
+  | FollowingNotificationItem
+  | ActivityNotificationItem
+  | ThreadNotificationItem
+  | MediaChangeNotificationItem
+  | SubmissionUpdateNotificationItem;
