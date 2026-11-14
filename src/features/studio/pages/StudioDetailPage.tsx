@@ -11,6 +11,7 @@ import { Button } from '@/shared/components/Button';
 import { EntityDetailHero } from '@/shared/components/EntityDetailHero';
 import { MediaCard } from '@/shared/components/MediaCard';
 import { DetailSkeleton, MediaCardSkeleton } from '@/shared/components/Skeleton';
+import { SelectDropdown } from '@/shared/components/SelectDropdown';
 import { EmptyState, ErrorState } from '@/shared/components/StateFeedback';
 import { useIsAdultFilter } from '@/shared/hooks/useIsAdultFilter';
 import { usePreferredTitleLanguage } from '@/shared/hooks/usePreferredTitleLanguage';
@@ -131,18 +132,15 @@ export function StudioDetailPage() {
               </button>
             </div>
 
-            <select
-              aria-label="Sort studio works"
+            <SelectDropdown
+              ariaLabel="Sort studio works"
+              size="sm"
+              surface="surface"
               value={sort}
-              onChange={(event) => setSort(event.target.value as MediaSort)}
-              className="h-9 rounded-[10px] border border-[var(--border-hairline)] bg-[var(--bg-surface)] px-2.5 text-xs font-semibold text-[var(--text-primary)] focus-visible:border-[var(--border-focus)] focus-visible:outline-none"
-            >
-              {STUDIO_SORT_OPTIONS.map((opt) => (
-                <option key={opt.value} value={opt.value}>
-                  {opt.label}
-                </option>
-              ))}
-            </select>
+              options={STUDIO_SORT_OPTIONS}
+              onChange={(nextSort) => setSort(nextSort)}
+              className="min-w-[144px]"
+            />
           </div>
         </div>
 

@@ -12,6 +12,7 @@ import type {
 } from '@/shared/api/types';
 import { BottomSheetOrModal } from '@/shared/components/BottomSheetOrModal';
 import { Button } from '@/shared/components/Button';
+import { SelectDropdown } from '@/shared/components/SelectDropdown';
 import { useToastStore } from '@/shared/stores/useToastStore';
 
 interface EditProfileModalProps {
@@ -178,35 +179,19 @@ export function EditProfileModal({ open, onClose, viewer }: EditProfileModalProp
         </div>
 
         <div className="grid grid-cols-2 gap-2.5 sm:gap-3">
-          <label className="space-y-1 text-xs font-semibold text-[var(--text-secondary)]">
-            <span>Title Language</span>
-            <select
-              value={titleLanguage}
-              onChange={(e) => setTitleLanguage(e.target.value as UserTitleLanguage)}
-              className="min-h-10 w-full rounded-[10px] border border-[var(--border-hairline)] bg-[var(--bg-canvas)] px-2.5 text-sm text-[var(--text-primary)]"
-            >
-              {TITLE_LANGUAGES.map((opt) => (
-                <option key={opt.value} value={opt.value}>
-                  {opt.label}
-                </option>
-              ))}
-            </select>
-          </label>
+          <SelectDropdown
+            label="Title Language"
+            value={titleLanguage}
+            options={TITLE_LANGUAGES}
+            onChange={(nextLanguage) => setTitleLanguage(nextLanguage)}
+          />
 
-          <label className="space-y-1 text-xs font-semibold text-[var(--text-secondary)]">
-            <span>Score Format</span>
-            <select
-              value={scoreFormat}
-              onChange={(e) => setScoreFormat(e.target.value as ScoreFormat)}
-              className="min-h-10 w-full rounded-[10px] border border-[var(--border-hairline)] bg-[var(--bg-canvas)] px-2.5 text-sm text-[var(--text-primary)]"
-            >
-              {SCORE_FORMATS.map((opt) => (
-                <option key={opt.value} value={opt.value}>
-                  {opt.label}
-                </option>
-              ))}
-            </select>
-          </label>
+          <SelectDropdown
+            label="Score Format"
+            value={scoreFormat}
+            options={SCORE_FORMATS}
+            onChange={(nextFormat) => setScoreFormat(nextFormat)}
+          />
         </div>
 
         <div className="space-y-2 rounded-xl border border-[var(--border-hairline)] bg-[var(--bg-subtle)] p-3">

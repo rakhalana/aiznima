@@ -113,6 +113,11 @@ describe('SearchPage', () => {
     expect(screen.queryByRole('button', { name: 'Hentai' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Adult Only' })).not.toBeInTheDocument();
 
+    // Open custom Sort By dropdown inside FilterSheet and switch option without closing sheet
+    fireEvent.click(screen.getByLabelText('Sort By'));
+    fireEvent.click(screen.getByRole('option', { name: 'Highest Score' }));
+    expect(screen.getByRole('dialog', { name: /filter & sort/i })).toBeInTheDocument();
+
     fireEvent.click(screen.getByRole('button', { name: 'Action' }));
     fireEvent.click(screen.getByRole('button', { name: /apply filters/i }));
 

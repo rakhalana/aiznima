@@ -16,6 +16,7 @@ import type {
 } from '@/shared/api/types';
 import { BottomSheetOrModal } from '@/shared/components/BottomSheetOrModal';
 import { Button } from '@/shared/components/Button';
+import { SelectDropdown } from '@/shared/components/SelectDropdown';
 import { usePreferredTitleLanguage } from '@/shared/hooks/usePreferredTitleLanguage';
 import { useAuthStore } from '@/shared/stores/useAuthStore';
 import { useToastStore } from '@/shared/stores/useToastStore';
@@ -219,39 +220,28 @@ export function ListEditorModal({
         ) : null}
 
         <div className="grid grid-cols-2 gap-2.5 sm:gap-3">
-          <label className="space-y-1 text-xs font-semibold text-[var(--text-secondary)]">
-            <span>Status</span>
-            <select
-              value={status}
-              onChange={(e) => setStatus(e.target.value as MediaListStatus)}
-              className="min-h-10 w-full rounded-[10px] border border-[var(--border-hairline)] bg-[var(--bg-canvas)] px-2.5 text-sm text-[var(--text-primary)]"
-            >
-              {ALL_STATUSES.map((opt) => (
-                <option key={opt} value={opt}>
-                  {formatListStatusLabel(opt, media.type)}
-                </option>
-              ))}
-            </select>
-          </label>
+          <SelectDropdown
+            label="Status"
+            value={status}
+            options={ALL_STATUSES.map((opt) => ({
+              value: opt,
+              label: formatListStatusLabel(opt, media.type),
+            }))}
+            onChange={(nextStatus) => setStatus(nextStatus)}
+          />
 
           {scoreFormat === 'POINT_3' ? (
-            <label className="space-y-1 text-xs font-semibold text-[var(--text-secondary)]">
-              <span>{scoreMeta.label}</span>
-              <select
-                aria-label={scoreMeta.label}
-                value={score}
-                onChange={(e) => setScore(Number(e.target.value))}
-                className="min-h-10 w-full rounded-[10px] border border-[var(--border-hairline)] bg-[var(--bg-canvas)] px-2.5 text-sm text-[var(--text-primary)]"
-              >
-                {[0, 1, 2, 3].map((val) => (
-                  <option key={val} value={val}>
-                    {POINT_3_LABELS[val]}
-                  </option>
-                ))}
-              </select>
-            </label>
+            <SelectDropdown
+              label={scoreMeta.label}
+              value={String(score)}
+              options={[0, 1, 2, 3].map((val) => ({
+                value: String(val),
+                label: POINT_3_LABELS[val],
+              }))}
+              onChange={(nextScore) => setScore(Number(nextScore))}
+            />
           ) : (
-            <label className="space-y-1 text-xs font-semibold text-[var(--text-secondary)]">
+            <label className="flex flex-col gap-1.5 text-xs font-semibold text-[var(--text-secondary)]">
               <span>{scoreMeta.label}</span>
               <input
                 type="number"
@@ -263,7 +253,7 @@ export function ListEditorModal({
                   const val = Number.parseFloat(e.target.value);
                   setScore(Number.isNaN(val) ? 0 : Math.max(0, Math.min(scoreMeta.max, val)));
                 }}
-                className="tabular-nums min-h-10 w-full rounded-[10px] border border-[var(--border-hairline)] bg-[var(--bg-canvas)] px-3 text-sm text-[var(--text-primary)]"
+                className="tabular-nums h-10 w-full rounded-[10px] border border-[var(--border-hairline)] bg-[var(--bg-canvas)] px-3 text-sm font-medium text-[var(--text-primary)] shadow-token-xs focus-visible:outline-none focus-visible:border-[var(--accent-primary)] focus-visible:ring-2 focus-visible:ring-blue-500/20"
               />
             </label>
           )}

@@ -1,7 +1,9 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
+import { BottomSheetOrModal } from './BottomSheetOrModal';
 import { ErrorBoundary } from './ErrorBoundary';
 import { MediaCard } from './MediaCard';
+import { SelectDropdown } from './SelectDropdown';
 import { EmptyState, ErrorState } from './StateFeedback';
 import type { MediaSummary } from '@/shared/api/types';
 
@@ -91,5 +93,52 @@ describe('shared UI components', () => {
     expect(screen.getByRole('heading', { name: /something went wrong/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /reload app/i })).toBeInTheDocument();
     spy.mockRestore();
+  });
+
+  it('renders custom SelectDropdown trigger & portal listbox with keyboard and modal Escape isolation', () => {
+    const onChange = vi.fn();
+    const onCloseModal = vi.fn();
+
+    render(
+      <BottomSheetOrModal open onClose={onCloseModal} title="Test Modal">
+        <SelectDropdown
+          label="Sort By"
+          value="TRENDING_DESC"
+          options={[
+            { value: 'TRENDING_DESC', label: 'Trending' },
+            { value: 'POPULARITY_DESC', label: 'Most Popular' },
+            { value: 'SCORE_DESC', label: 'Highest Score' },
+          ]}
+          onChange={onChange}
+        />
+      </BottomSheetOrModal>,
+    );
+
+    const combobox = screen.getByLabelText('Sort By');
+    expect(combobox).toHaveAttribute('role', 'combobox');
+    expect(combobox).toHaveAttribute('aria-expanded', 'false');
+    expect(combobox).toHaveTextContent('Trending');
+
+    // Open dropdown portal
+    fireEvent.click(combobox);
+    expect(combobox).toHaveAttribute('aria-expanded', 'true');
+    const listbox = screen.getByRole('listbox', { name: 'Sort By' });
+    expect(listbox).toBeInTheDocument();
+
+    const selectedOpt = screen.getByRole('option', { name: 'Trending' });
+    expect(selectedOpt).toHaveAttribute('aria-selected', 'true');
+
+    // Pressing Escape closes dropdown without closing parent modal
+    fireEvent.keyDown(window, { key: 'Escape' });
+    expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
+    expect(onCloseModal).not.toHaveBeenCalled();
+
+    // Open via ArrowDown and pick option via keyboard
+    fireEvent.keyDown(combobox, { key: 'ArrowDown' });
+    fireEvent.keyDown(combobox, { key: 'ArrowDown' });
+    fireEvent.keyDown(combobox, { key: 'Enter' });
+
+    expect(onChange).toHaveBeenCalledWith('POPULARITY_DESC');
+    expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
   });
 });

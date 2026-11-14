@@ -15,6 +15,8 @@ import type {
 } from '@/shared/api/types';
 import { BottomSheetOrModal } from '@/shared/components/BottomSheetOrModal';
 import { Button } from '@/shared/components/Button';
+import { SelectDropdown, type SelectOption } from '@/shared/components/SelectDropdown';
+import { formatMediaFormat } from '@/shared/utils/formatters';
 
 interface FilterSheetProps {
   open: boolean;
@@ -27,7 +29,14 @@ interface FilterSheetProps {
 
 const ANIME_FORMATS: MediaFormat[] = ['TV', 'MOVIE', 'OVA', 'ONA', 'SPECIAL', 'TV_SHORT'];
 const MANGA_FORMATS: MediaFormat[] = ['MANGA', 'NOVEL', 'ONE_SHOT'];
-const STATUSES: MediaStatus[] = ['RELEASING', 'FINISHED', 'NOT_YET_RELEASED', 'HIATUS', 'CANCELLED'];
+const STATUS_OPTIONS: Array<SelectOption<MediaStatus | ''>> = [
+  { value: '', label: 'Any Status' },
+  { value: 'RELEASING', label: 'Releasing' },
+  { value: 'FINISHED', label: 'Finished' },
+  { value: 'NOT_YET_RELEASED', label: 'Not Yet Released' },
+  { value: 'HIATUS', label: 'Hiatus' },
+  { value: 'CANCELLED', label: 'Cancelled' },
+];
 const SEASONS: MediaSeason[] = ['WINTER', 'SPRING', 'SUMMER', 'FALL'];
 const MEDIA_SORTS: Array<{ value: MediaSort; label: string }> = [
   { value: 'TRENDING_DESC', label: 'Trending' },
@@ -78,7 +87,13 @@ export function FilterSheet({
     }
   }, [open, filters]);
 
-  const formats = draft.type === 'ANIME' ? ANIME_FORMATS : MANGA_FORMATS;
+  const formatOptions: Array<SelectOption<MediaFormat | ''>> = [
+    { value: '', label: 'Any Format' },
+    ...(draft.type === 'ANIME' ? ANIME_FORMATS : MANGA_FORMATS).map((format) => ({
+      value: format,
+      label: formatMediaFormat(format),
+    })),
+  ];
   const availableGenres = (meta?.GenreCollection ?? []).filter(
     (g) => allowAdult || g !== 'Hentai',
   );
@@ -96,66 +111,40 @@ export function FilterSheet({
         {isMedia ? (
           <>
             <div className="grid grid-cols-2 gap-2.5 sm:gap-3">
-              <label className="space-y-1 text-xs font-semibold text-[var(--text-secondary)]">
-                <span>Sort By</span>
-                <select
-                  value={draft.sort}
-                  onChange={(e) =>
-                    setDraft((prev) => ({ ...prev, sort: e.target.value as MediaSort }))
-                  }
-                  className="min-h-10 w-full rounded-[10px] border border-[var(--border-hairline)] bg-[var(--bg-canvas)] px-2.5 text-sm font-medium text-[var(--text-primary)]"
-                >
-                  {MEDIA_SORTS.map((item) => (
-                    <option key={item.value} value={item.value}>
-                      {item.label}
-                    </option>
-                  ))}
-                </select>
-              </label>
+              <SelectDropdown
+                label="Sort By"
+                value={draft.sort}
+                options={MEDIA_SORTS}
+                onChange={(nextSort) =>
+                  setDraft((prev) => ({ ...prev, sort: nextSort as MediaSort }))
+                }
+              />
 
-              <label className="space-y-1 text-xs font-semibold text-[var(--text-secondary)]">
-                <span>Format</span>
-                <select
-                  value={draft.format ?? ''}
-                  onChange={(e) =>
-                    setDraft((prev) => ({
-                      ...prev,
-                      format: (e.target.value as MediaFormat) || undefined,
-                    }))
-                  }
-                  className="min-h-10 w-full rounded-[10px] border border-[var(--border-hairline)] bg-[var(--bg-canvas)] px-2.5 text-sm font-medium text-[var(--text-primary)]"
-                >
-                  <option value="">Any Format</option>
-                  {formats.map((format) => (
-                    <option key={format} value={format}>
-                      {format.replace(/_/g, ' ')}
-                    </option>
-                  ))}
-                </select>
-              </label>
+              <SelectDropdown
+                label="Format"
+                value={draft.format ?? ''}
+                options={formatOptions}
+                onChange={(nextFormat) =>
+                  setDraft((prev) => ({
+                    ...prev,
+                    format: (nextFormat as MediaFormat) || undefined,
+                  }))
+                }
+              />
 
-              <label className="space-y-1 text-xs font-semibold text-[var(--text-secondary)]">
-                <span>Status</span>
-                <select
-                  value={draft.status ?? ''}
-                  onChange={(e) =>
-                    setDraft((prev) => ({
-                      ...prev,
-                      status: (e.target.value as MediaStatus) || undefined,
-                    }))
-                  }
-                  className="min-h-10 w-full rounded-[10px] border border-[var(--border-hairline)] bg-[var(--bg-canvas)] px-2.5 text-sm font-medium text-[var(--text-primary)]"
-                >
-                  <option value="">Any Status</option>
-                  {STATUSES.map((status) => (
-                    <option key={status} value={status}>
-                      {status.replace(/_/g, ' ')}
-                    </option>
-                  ))}
-                </select>
-              </label>
+              <SelectDropdown
+                label="Status"
+                value={draft.status ?? ''}
+                options={STATUS_OPTIONS}
+                onChange={(nextStatus) =>
+                  setDraft((prev) => ({
+                    ...prev,
+                    status: (nextStatus as MediaStatus) || undefined,
+                  }))
+                }
+              />
 
-              <label className="space-y-1 text-xs font-semibold text-[var(--text-secondary)]">
+              <label className="flex flex-col gap-1.5 text-xs font-semibold text-[var(--text-secondary)]">
                 <span>Year</span>
                 <input
                   type="number"
@@ -170,7 +159,7 @@ export function FilterSheet({
                       year: !Number.isNaN(parsed) && parsed >= 1950 ? parsed : undefined,
                     }));
                   }}
-                  className="tabular-nums min-h-10 w-full rounded-[10px] border border-[var(--border-hairline)] bg-[var(--bg-canvas)] px-2.5 text-sm font-medium text-[var(--text-primary)]"
+                  className="tabular-nums h-10 w-full rounded-[10px] border border-[var(--border-hairline)] bg-[var(--bg-canvas)] px-3 text-sm font-medium text-[var(--text-primary)] shadow-token-xs focus-visible:outline-none focus-visible:border-[var(--accent-primary)] focus-visible:ring-2 focus-visible:ring-blue-500/20"
                 />
               </label>
             </div>
@@ -276,27 +265,18 @@ export function FilterSheet({
         {/* Character / Staff Filters */}
         {draft.type === 'CHARACTER' || draft.type === 'STAFF' ? (
           <div className="space-y-3">
-            <label className="block space-y-1 text-xs font-semibold text-[var(--text-secondary)]">
-              <span>Sort By</span>
-              <select
-                value={draft.type === 'CHARACTER' ? draft.characterSort : draft.staffSort}
-                onChange={(e) => {
-                  const nextSort = e.target.value;
-                  setDraft((prev) =>
-                    prev.type === 'CHARACTER'
-                      ? { ...prev, characterSort: nextSort as CharacterSort }
-                      : { ...prev, staffSort: nextSort as StaffSort },
-                  );
-                }}
-                className="min-h-10 w-full rounded-[10px] border border-[var(--border-hairline)] bg-[var(--bg-canvas)] px-2.5 text-sm font-medium text-[var(--text-primary)]"
-              >
-                {CHARACTER_STAFF_SORTS.map((item) => (
-                  <option key={item.value} value={item.value}>
-                    {item.label}
-                  </option>
-                ))}
-              </select>
-            </label>
+            <SelectDropdown
+              label="Sort By"
+              value={draft.type === 'CHARACTER' ? draft.characterSort : draft.staffSort}
+              options={CHARACTER_STAFF_SORTS}
+              onChange={(nextSort) => {
+                setDraft((prev) =>
+                  prev.type === 'CHARACTER'
+                    ? { ...prev, characterSort: nextSort as CharacterSort }
+                    : { ...prev, staffSort: nextSort as StaffSort },
+                );
+              }}
+            />
 
             <label className="flex items-center justify-between gap-3 rounded-xl border border-[var(--border-hairline)] bg-[var(--bg-canvas)] p-3 text-xs font-semibold text-[var(--text-primary)]">
               <div>
@@ -323,22 +303,14 @@ export function FilterSheet({
         {/* Studios Filters */}
         {draft.type === 'STUDIO' ? (
           <div className="space-y-3">
-            <label className="block space-y-1 text-xs font-semibold text-[var(--text-secondary)]">
-              <span>Sort By</span>
-              <select
-                value={draft.studioSort}
-                onChange={(e) =>
-                  setDraft((prev) => ({ ...prev, studioSort: e.target.value as StudioSort }))
-                }
-                className="min-h-10 w-full rounded-[10px] border border-[var(--border-hairline)] bg-[var(--bg-canvas)] px-2.5 text-sm font-medium text-[var(--text-primary)]"
-              >
-                {STUDIO_SORTS.map((item) => (
-                  <option key={item.value} value={item.value}>
-                    {item.label}
-                  </option>
-                ))}
-              </select>
-            </label>
+            <SelectDropdown
+              label="Sort By"
+              value={draft.studioSort}
+              options={STUDIO_SORTS}
+              onChange={(nextSort) =>
+                setDraft((prev) => ({ ...prev, studioSort: nextSort as StudioSort }))
+              }
+            />
 
             <label className="flex items-center justify-between gap-3 rounded-xl border border-[var(--border-hairline)] bg-[var(--bg-canvas)] p-3 text-xs font-semibold text-[var(--text-primary)]">
               <div>
@@ -365,22 +337,14 @@ export function FilterSheet({
         {/* Users Filters */}
         {draft.type === 'USER' ? (
           <div className="space-y-3">
-            <label className="block space-y-1 text-xs font-semibold text-[var(--text-secondary)]">
-              <span>Sort By</span>
-              <select
-                value={draft.userSort}
-                onChange={(e) =>
-                  setDraft((prev) => ({ ...prev, userSort: e.target.value as UserSort }))
-                }
-                className="min-h-10 w-full rounded-[10px] border border-[var(--border-hairline)] bg-[var(--bg-canvas)] px-2.5 text-sm font-medium text-[var(--text-primary)]"
-              >
-                {USER_SORTS.map((item) => (
-                  <option key={item.value} value={item.value}>
-                    {item.label}
-                  </option>
-                ))}
-              </select>
-            </label>
+            <SelectDropdown
+              label="Sort By"
+              value={draft.userSort}
+              options={USER_SORTS}
+              onChange={(nextSort) =>
+                setDraft((prev) => ({ ...prev, userSort: nextSort as UserSort }))
+              }
+            />
 
             <label className="flex items-center justify-between gap-3 rounded-xl border border-[var(--border-hairline)] bg-[var(--bg-canvas)] p-3 text-xs font-semibold text-[var(--text-primary)]">
               <div>

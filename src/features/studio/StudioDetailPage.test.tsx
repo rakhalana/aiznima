@@ -148,9 +148,8 @@ describe('StudioDetailPage', () => {
       expect(screen.queryByText('Support Credit Show')).not.toBeInTheDocument();
     });
 
-    fireEvent.change(screen.getByLabelText('Sort studio works'), {
-      target: { value: 'SCORE_DESC' },
-    });
+    fireEvent.click(screen.getByRole('combobox', { name: 'Sort studio works' }));
+    fireEvent.click(screen.getByRole('option', { name: 'Top Rated' }));
     await waitFor(() => {
       const hasScoreSort = fetchMock.mock.calls.some(([, init]) => {
         const body = JSON.parse(String(init?.body ?? '{}')) as {

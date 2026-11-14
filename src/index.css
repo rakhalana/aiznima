@@ -170,6 +170,21 @@ body {
   animation: sheet-slide-up 200ms var(--ease-crisp);
 }
 
+@keyframes dropdown-pop {
+  from {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.animate-dropdown-in {
+  animation: dropdown-pop 140ms var(--ease-crisp);
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
