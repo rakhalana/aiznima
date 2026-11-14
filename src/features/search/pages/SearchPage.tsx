@@ -29,11 +29,13 @@ import type {
 } from '@/shared/api/types';
 import { Button } from '@/shared/components/Button';
 import { MediaCard } from '@/shared/components/MediaCard';
-import { MediaCardSkeleton } from '@/shared/components/Skeleton';
+import { MediaCardSkeleton, MediaRowSkeleton } from '@/shared/components/Skeleton';
 import { EmptyState, ErrorState } from '@/shared/components/StateFeedback';
+import { ViewModeToggle } from '@/shared/components/ViewModeToggle';
 import { useDebounce } from '@/shared/hooks/useDebounce';
 import { useIsAdultFilter } from '@/shared/hooks/useIsAdultFilter';
 import { usePreferredTitleLanguage } from '@/shared/hooks/usePreferredTitleLanguage';
+import { usePrefsStore } from '@/shared/stores/usePrefsStore';
 
 const SEARCH_TABS: Array<{
   type: SearchEntityType;
@@ -226,6 +228,9 @@ export function SearchPage() {
     return () => window.removeEventListener('keydown', onKeyDown);
   }, []);
 
+  const searchViewMode = usePrefsStore((state) => state.searchViewMode);
+  const setSearchViewMode = usePrefsStore((state) => state.setSearchViewMode);
+
   const mediaQuery = useSearchMediaQuery(urlFilters, isAdultQueryArg);
   const charactersQuery = useSearchCharactersQuery(urlFilters);
   const staffQuery = useSearchStaffQuery(urlFilters);
@@ -301,6 +306,12 @@ export function SearchPage() {
   };
 
   const isCompactInfoGrid = urlFilters.type === 'STUDIO' || urlFilters.type === 'USER';
+  const resultsGridClass =
+    searchViewMode === 'list'
+      ? 'grid grid-cols-1 gap-2.5 md:grid-cols-2 md:gap-3'
+      : isCompactInfoGrid
+        ? 'grid grid-cols-2 gap-2.5 sm:grid-cols-3 md:grid-cols-4 md:gap-4'
+        : 'grid grid-cols-2 gap-2.5 sm:grid-cols-3 md:grid-cols-4 md:gap-4 lg:grid-cols-6';
 
   return (
     <div className="space-y-4 md:space-y-5">
@@ -375,6 +386,14 @@ export function SearchPage() {
             ) : null}
           </div>
 
+          <ViewModeToggle
+            mode={searchViewMode}
+            onToggle={() =>
+              void setSearchViewMode(searchViewMode === 'grid' ? 'list' : 'grid')
+            }
+            size="md"
+          />
+
           <Button
             variant="secondary"
             onClick={() => setFilterOpen(true)}
@@ -400,15 +419,19 @@ export function SearchPage() {
       ) : null}
 
       {!needsUserSearchPrompt && activeQuery.isLoading && !activeQuery.data ? (
-        <div
-          className={`grid grid-cols-2 gap-2.5 sm:grid-cols-3 md:grid-cols-4 md:gap-4 ${
-            isCompactInfoGrid ? '' : 'lg:grid-cols-6'
-          }`}
-        >
-          {Array.from({ length: 12 }).map((_, idx) => (
-            <MediaCardSkeleton key={idx} />
-          ))}
-        </div>
+        searchViewMode === 'list' ? (
+          <div className={resultsGridClass}>
+            {Array.from({ length: 8 }).map((_, idx) => (
+              <MediaRowSkeleton key={idx} layout="list" />
+            ))}
+          </div>
+        ) : (
+          <div className={resultsGridClass}>
+            {Array.from({ length: 12 }).map((_, idx) => (
+              <MediaCardSkeleton key={idx} />
+            ))}
+          </div>
+        )
       ) : null}
 
       {!needsUserSearchPrompt && activeQuery.isError && !activeQuery.data ? (
@@ -439,12 +462,13 @@ export function SearchPage() {
       {!needsUserSearchPrompt && resultCount > 0 ? (
         <>
           {urlFilters.type === 'ANIME' || urlFilters.type === 'MANGA' ? (
-            <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 md:grid-cols-4 md:gap-4 lg:grid-cols-6">
+            <div className={resultsGridClass}>
               {mediaItems.map((item) => (
                 <MediaCard
                   key={item.id}
                   media={item}
                   preferredLanguage={preferredLanguage}
+                  layout={searchViewMode}
                   onSelect={(media) => navigate(`/media/${media.id}`)}
                 />
               ))}
@@ -452,11 +476,12 @@ export function SearchPage() {
           ) : null}
 
           {urlFilters.type === 'CHARACTER' ? (
-            <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 md:grid-cols-4 md:gap-4 lg:grid-cols-6">
+            <div className={resultsGridClass}>
               {characterItems.map((character) => (
                 <CharacterCard
                   key={character.id}
                   character={character}
+                  layout={searchViewMode}
                   onSelect={(c) => navigate(`/character/${c.id}`)}
                 />
               ))}
@@ -464,11 +489,12 @@ export function SearchPage() {
           ) : null}
 
           {urlFilters.type === 'STAFF' ? (
-            <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 md:grid-cols-4 md:gap-4 lg:grid-cols-6">
+            <div className={resultsGridClass}>
               {staffItems.map((member) => (
                 <StaffCard
                   key={member.id}
                   staff={member}
+                  layout={searchViewMode}
                   onSelect={(s) => navigate(`/staff/${s.id}`)}
                 />
               ))}
@@ -476,11 +502,12 @@ export function SearchPage() {
           ) : null}
 
           {urlFilters.type === 'STUDIO' ? (
-            <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 md:grid-cols-4 md:gap-4">
+            <div className={resultsGridClass}>
               {studioItems.map((studio) => (
                 <StudioCard
                   key={studio.id}
                   studio={studio}
+                  layout={searchViewMode}
                   onSelect={(st) => navigate(`/studio/${st.id}`)}
                 />
               ))}
@@ -488,11 +515,12 @@ export function SearchPage() {
           ) : null}
 
           {urlFilters.type === 'USER' ? (
-            <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 md:grid-cols-4 md:gap-4">
+            <div className={resultsGridClass}>
               {userItems.map((user) => (
                 <UserCard
                   key={user.id}
                   user={user}
+                  layout={searchViewMode}
                   onSelect={(u) => navigate(`/user/${encodeURIComponent(u.name)}`)}
                 />
               ))}

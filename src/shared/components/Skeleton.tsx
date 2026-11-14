@@ -1,3 +1,5 @@
+import type { ViewMode } from '@/shared/stores/usePrefsStore';
+
 export function MediaCardSkeleton() {
   return (
     <div className="flex flex-col" aria-hidden="true">
@@ -8,13 +10,21 @@ export function MediaCardSkeleton() {
   );
 }
 
-export function MediaRowSkeleton() {
+export function MediaRowSkeleton({ layout = 'grid' }: { layout?: ViewMode }) {
+  const isRow = layout === 'list';
+
   return (
     <div
-      className="flex flex-col gap-2.5 rounded-xl border border-[var(--border-hairline)] bg-[var(--bg-surface)] p-2.5 sm:flex-row sm:items-center sm:gap-3 sm:p-3"
+      className={`flex gap-2.5 rounded-xl border border-[var(--border-hairline)] bg-[var(--bg-surface)] p-2.5 ${
+        isRow ? 'flex-row items-center gap-3 sm:p-3' : 'flex-col sm:flex-row sm:items-center sm:gap-3 sm:p-3'
+      }`}
       aria-hidden="true"
     >
-      <div className="aspect-[3/4] w-full shrink-0 animate-pulse rounded-lg bg-[var(--bg-subtle)] sm:aspect-auto sm:h-24 sm:w-16" />
+      <div
+        className={`shrink-0 animate-pulse rounded-lg bg-[var(--bg-subtle)] ${
+          isRow ? 'h-24 w-[66px] sm:w-[76px]' : 'aspect-[3/4] w-full sm:aspect-auto sm:h-24 sm:w-16'
+        }`}
+      />
       <div className="flex-1 space-y-2">
         <div className="h-4 w-3/4 animate-pulse rounded bg-[var(--bg-subtle)]" />
         <div className="h-3 w-1/2 animate-pulse rounded bg-[var(--bg-subtle)]" />

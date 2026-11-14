@@ -245,4 +245,45 @@ describe('MyListPage & ListEditorModal', () => {
       expect(screen.queryByRole('dialog', { name: /edit list entry/i })).not.toBeInTheDocument();
     });
   });
+
+  it('toggles between 2-col grid view and left-poster row view beside filter input', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        new Response(
+          JSON.stringify({
+            data: {
+              MediaListCollection: {
+                hasNextChunk: false,
+                lists: [
+                  {
+                    name: 'Watching',
+                    isCustomList: false,
+                    status: 'CURRENT',
+                    entries: [makeEntry()],
+                  },
+                ],
+              },
+            },
+          }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } },
+        ),
+      ),
+    );
+
+    renderMyList();
+
+    expect(await screen.findByText('Frieren')).toBeInTheDocument();
+
+    const card = screen.getByText('Frieren').closest('article');
+    expect(card).toHaveClass('flex-col');
+
+    fireEvent.click(screen.getByRole('button', { name: /switch to row view/i }));
+    expect(usePrefsStore.getState().listViewMode).toBe('list');
+    expect(screen.getByRole('button', { name: /switch to grid view/i })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+    expect(card).toHaveClass('flex-row');
+  });
 });

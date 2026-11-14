@@ -6,23 +6,30 @@ const PREFS_STORAGE_KEY = 'aiznima:prefs';
 const THEME_FAST_KEY = 'aiznima:theme';
 
 export type ThemeMode = 'light' | 'dark';
+export type ViewMode = 'grid' | 'list';
 
 interface StoredPrefs {
   theme: ThemeMode;
   guestShowAdult: boolean;
   activeMediaType: MediaType;
+  searchViewMode?: ViewMode;
+  listViewMode?: ViewMode;
 }
 
 export interface PrefsState {
   theme: ThemeMode;
   guestShowAdult: boolean;
   activeMediaType: MediaType;
+  searchViewMode: ViewMode;
+  listViewMode: ViewMode;
   isHydrated: boolean;
   hydrate: () => Promise<void>;
   setTheme: (theme: ThemeMode) => Promise<void>;
   toggleTheme: () => Promise<void>;
   setGuestShowAdult: (show: boolean) => Promise<void>;
   setActiveMediaType: (type: MediaType) => Promise<void>;
+  setSearchViewMode: (mode: ViewMode) => Promise<void>;
+  setListViewMode: (mode: ViewMode) => Promise<void>;
 }
 
 function applyThemeToDom(theme: ThemeMode): void {
@@ -46,11 +53,18 @@ function applyThemeToDom(theme: ThemeMode): void {
   void syncStatusBar(theme);
 }
 
-async function persistPrefs(state: Pick<PrefsState, 'theme' | 'guestShowAdult' | 'activeMediaType'>) {
+async function persistPrefs(
+  state: Pick<
+    PrefsState,
+    'theme' | 'guestShowAdult' | 'activeMediaType' | 'searchViewMode' | 'listViewMode'
+  >,
+) {
   const payload: StoredPrefs = {
     theme: state.theme,
     guestShowAdult: state.guestShowAdult,
     activeMediaType: state.activeMediaType,
+    searchViewMode: state.searchViewMode,
+    listViewMode: state.listViewMode,
   };
   await platformStorage.setItem(PREFS_STORAGE_KEY, JSON.stringify(payload));
 }
@@ -59,6 +73,8 @@ export const usePrefsStore = create<PrefsState>((set, get) => ({
   theme: 'light',
   guestShowAdult: false,
   activeMediaType: 'ANIME',
+  searchViewMode: 'grid',
+  listViewMode: 'grid',
   isHydrated: false,
 
   async hydrate() {
@@ -74,9 +90,18 @@ export const usePrefsStore = create<PrefsState>((set, get) => ({
       const theme: ThemeMode = parsed.theme === 'dark' ? 'dark' : 'light';
       const guestShowAdult = Boolean(parsed.guestShowAdult);
       const activeMediaType: MediaType = parsed.activeMediaType === 'MANGA' ? 'MANGA' : 'ANIME';
+      const searchViewMode: ViewMode = parsed.searchViewMode === 'list' ? 'list' : 'grid';
+      const listViewMode: ViewMode = parsed.listViewMode === 'list' ? 'list' : 'grid';
 
       applyThemeToDom(theme);
-      set({ theme, guestShowAdult, activeMediaType, isHydrated: true });
+      set({
+        theme,
+        guestShowAdult,
+        activeMediaType,
+        searchViewMode,
+        listViewMode,
+        isHydrated: true,
+      });
       return;
     } catch {
       applyThemeToDom('light');
@@ -103,5 +128,15 @@ export const usePrefsStore = create<PrefsState>((set, get) => ({
   async setActiveMediaType(activeMediaType) {
     set({ activeMediaType });
     await persistPrefs({ ...get(), activeMediaType });
+  },
+
+  async setSearchViewMode(searchViewMode) {
+    set({ searchViewMode });
+    await persistPrefs({ ...get(), searchViewMode });
+  },
+
+  async setListViewMode(listViewMode) {
+    set({ listViewMode });
+    await persistPrefs({ ...get(), listViewMode });
   },
 }));

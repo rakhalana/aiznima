@@ -11,6 +11,8 @@ describe('core Zustand stores', () => {
       theme: 'light',
       guestShowAdult: false,
       activeMediaType: 'ANIME',
+      searchViewMode: 'grid',
+      listViewMode: 'grid',
       isHydrated: false,
     });
   });
@@ -27,6 +29,17 @@ describe('core Zustand stores', () => {
     await usePrefsStore.getState().toggleTheme();
     expect(usePrefsStore.getState().theme).toBe('light');
     expect(document.documentElement.classList.contains('dark')).toBe(false);
+  });
+
+  it('persists searchViewMode and listViewMode across store rehydration', async () => {
+    await usePrefsStore.getState().setSearchViewMode('list');
+    await usePrefsStore.getState().setListViewMode('list');
+
+    usePrefsStore.setState({ searchViewMode: 'grid', listViewMode: 'grid', isHydrated: false });
+    await usePrefsStore.getState().hydrate();
+
+    expect(usePrefsStore.getState().searchViewMode).toBe('list');
+    expect(usePrefsStore.getState().listViewMode).toBe('list');
   });
 
   it('persists valid auth tokens and discards expired tokens on hydrate', async () => {

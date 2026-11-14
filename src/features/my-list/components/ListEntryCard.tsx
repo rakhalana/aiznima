@@ -6,6 +6,7 @@ import type {
   UserTitleLanguage,
 } from '@/shared/api/types';
 import { Button } from '@/shared/components/Button';
+import type { ViewMode } from '@/shared/stores/usePrefsStore';
 import {
   formatListStatusLabel,
   formatMediaFormat,
@@ -17,6 +18,7 @@ interface ListEntryCardProps {
   entry: MediaListEntry;
   preferredLanguage: UserTitleLanguage;
   scoreFormat: ScoreFormat;
+  layout?: ViewMode;
   readOnly?: boolean;
   onSelectMedia: (mediaId: number) => void;
   onEdit?: (entry: MediaListEntry) => void;
@@ -27,12 +29,14 @@ export function ListEntryCard({
   entry,
   preferredLanguage,
   scoreFormat,
+  layout = 'grid',
   readOnly = false,
   onSelectMedia,
   onEdit,
   onIncrementProgress,
 }: ListEntryCardProps) {
   const [imageError, setImageError] = useState(false);
+  const isRow = layout === 'list';
 
   const media = entry.media;
   const title = formatMediaTitle(media.title, preferredLanguage);
@@ -46,11 +50,19 @@ export function ListEntryCard({
       : null;
 
   return (
-    <article className="flex flex-col gap-2.5 rounded-xl border border-[var(--border-hairline)] bg-[var(--bg-surface)] p-2.5 shadow-token-xs transition-crisp hover:border-[var(--border-strong)] sm:flex-row sm:gap-3 sm:p-3">
+    <article
+      className={`flex rounded-xl border border-[var(--border-hairline)] bg-[var(--bg-surface)] shadow-token-xs transition-crisp hover:border-[var(--border-strong)] ${
+        isRow ? 'flex-row gap-3 p-2.5 sm:p-3' : 'flex-col gap-2.5 p-2.5 sm:flex-row sm:gap-3 sm:p-3'
+      }`}
+    >
       <button
         type="button"
         onClick={() => onSelectMedia(media.id)}
-        className="relative aspect-[3/4] w-full shrink-0 overflow-hidden rounded-lg border border-[var(--border-hairline)] bg-[var(--bg-subtle)] text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 sm:aspect-auto sm:h-28 sm:w-[76px]"
+        className={`relative shrink-0 overflow-hidden rounded-lg border border-[var(--border-hairline)] bg-[var(--bg-subtle)] text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 ${
+          isRow
+            ? 'h-24 w-[66px] sm:h-28 sm:w-[76px]'
+            : 'aspect-[3/4] w-full sm:aspect-auto sm:h-28 sm:w-[76px]'
+        }`}
       >
         {coverUrl && !imageError ? (
           <img
@@ -66,14 +78,14 @@ export function ListEntryCard({
           </div>
         )}
 
-        {entry.score && entry.score > 0 ? (
+        {!isRow && entry.score && entry.score > 0 ? (
           <span className="tabular-nums absolute left-1.5 top-1.5 inline-flex items-center gap-0.5 rounded-md bg-slate-900/80 px-1.5 py-0.5 text-[10px] font-semibold text-amber-300 backdrop-blur-xs sm:hidden">
             <Star className="h-2.5 w-2.5 fill-current" strokeWidth={1.75} aria-hidden="true" />
             {formatScore(entry.score, scoreFormat)}
           </span>
         ) : null}
 
-        {entry.private ? (
+        {!isRow && entry.private ? (
           <span className="absolute right-1.5 top-1.5 inline-flex items-center gap-0.5 rounded bg-slate-900/80 px-1.5 py-0.5 text-[10px] font-semibold text-white sm:hidden">
             <Lock className="h-2.5 w-2.5" strokeWidth={1.75} aria-hidden="true" />
           </span>
@@ -94,7 +106,11 @@ export function ListEntryCard({
             </button>
 
             {entry.score && entry.score > 0 ? (
-              <span className="tabular-nums hidden shrink-0 items-center gap-1 rounded-md bg-[var(--score-bg)] px-1.5 py-0.5 text-[11px] font-semibold text-[var(--score-text)] sm:inline-flex">
+              <span
+                className={`tabular-nums shrink-0 items-center gap-1 rounded-md bg-[var(--score-bg)] px-1.5 py-0.5 text-[11px] font-semibold text-[var(--score-text)] ${
+                  isRow ? 'inline-flex' : 'hidden sm:inline-flex'
+                }`}
+              >
                 <Star className="h-3 w-3 fill-current" strokeWidth={1.75} aria-hidden="true" />
                 {formatScore(entry.score, scoreFormat)}
               </span>
@@ -110,7 +126,11 @@ export function ListEntryCard({
               </>
             ) : null}
             {entry.private ? (
-              <span className="hidden items-center gap-0.5 rounded bg-[var(--bg-subtle)] px-1.5 py-0.5 text-[10px] font-semibold text-[var(--text-secondary)] sm:inline-flex">
+              <span
+                className={`items-center gap-0.5 rounded bg-[var(--bg-subtle)] px-1.5 py-0.5 text-[10px] font-semibold text-[var(--text-secondary)] ${
+                  isRow ? 'inline-flex' : 'hidden sm:inline-flex'
+                }`}
+              >
                 <Lock className="h-2.5 w-2.5" strokeWidth={1.75} aria-hidden="true" />
                 Private
               </span>

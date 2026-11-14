@@ -20,6 +20,7 @@ import type {
 } from '@/shared/api/types';
 import { MediaRowSkeleton } from '@/shared/components/Skeleton';
 import { EmptyState, ErrorState } from '@/shared/components/StateFeedback';
+import { ViewModeToggle } from '@/shared/components/ViewModeToggle';
 import { usePreferredTitleLanguage } from '@/shared/hooks/usePreferredTitleLanguage';
 import { useAuthStore } from '@/shared/stores/useAuthStore';
 import { usePrefsStore } from '@/shared/stores/usePrefsStore';
@@ -30,6 +31,8 @@ function MyListContent() {
   const navigate = useNavigate();
   const viewer = useAuthStore((state) => state.viewer);
   const initialType = usePrefsStore((state) => state.activeMediaType);
+  const listViewMode = usePrefsStore((state) => state.listViewMode);
+  const setListViewMode = usePrefsStore((state) => state.setListViewMode);
   const addToast = useToastStore((state) => state.addToast);
   const preferredLanguage = usePreferredTitleLanguage();
 
@@ -167,27 +170,43 @@ function MyListContent() {
           })}
         </div>
 
-        <div className="relative w-full md:w-64">
-          <SearchIcon
-            className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--text-muted)]"
-            strokeWidth={1.75}
-            aria-hidden="true"
-          />
-          <input
-            type="search"
-            value={filterQuery}
-            onChange={(e) => setFilterQuery(e.target.value)}
-            placeholder="Filter your list..."
-            aria-label="Filter your list"
-            className="min-h-10 w-full rounded-[10px] border border-[var(--border-hairline)] bg-[var(--bg-surface)] pl-9 pr-3 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:border-[var(--accent-primary)] focus:outline-none"
+        <div className="flex w-full items-center gap-2 md:w-auto">
+          <div className="relative flex-1 md:w-64">
+            <SearchIcon
+              className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--text-muted)]"
+              strokeWidth={1.75}
+              aria-hidden="true"
+            />
+            <input
+              type="search"
+              value={filterQuery}
+              onChange={(e) => setFilterQuery(e.target.value)}
+              placeholder="Filter your list..."
+              aria-label="Filter your list"
+              className="min-h-10 w-full rounded-[10px] border border-[var(--border-hairline)] bg-[var(--bg-surface)] pl-9 pr-3 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:border-[var(--accent-primary)] focus:outline-none"
+            />
+          </div>
+
+          <ViewModeToggle
+            mode={listViewMode}
+            onToggle={() =>
+              void setListViewMode(listViewMode === 'grid' ? 'list' : 'grid')
+            }
+            size="sm"
           />
         </div>
       </div>
 
       {(!viewer?.id || isLoading) && !data ? (
-        <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-2 md:gap-3.5 lg:grid-cols-3">
+        <div
+          className={
+            listViewMode === 'list'
+              ? 'grid grid-cols-1 gap-2.5 md:grid-cols-2 md:gap-3.5'
+              : 'grid grid-cols-2 gap-2.5 sm:grid-cols-2 md:gap-3.5 lg:grid-cols-3'
+          }
+        >
           {Array.from({ length: 6 }).map((_, idx) => (
-            <MediaRowSkeleton key={idx} />
+            <MediaRowSkeleton key={idx} layout={listViewMode} />
           ))}
         </div>
       ) : null}
@@ -217,11 +236,18 @@ function MyListContent() {
       ) : null}
 
       {visibleEntries.length > 0 ? (
-        <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-2 md:gap-3.5 lg:grid-cols-3">
+        <div
+          className={
+            listViewMode === 'list'
+              ? 'grid grid-cols-1 gap-2.5 md:grid-cols-2 md:gap-3.5'
+              : 'grid grid-cols-2 gap-2.5 sm:grid-cols-2 md:gap-3.5 lg:grid-cols-3'
+          }
+        >
           {visibleEntries.map((entry) => (
             <ListEntryCard
               key={entry.id}
               entry={entry}
+              layout={listViewMode}
               preferredLanguage={preferredLanguage}
               scoreFormat={scoreFormat}
               onSelectMedia={(id) => navigate(`/media/${id}`)}

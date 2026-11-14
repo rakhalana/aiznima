@@ -1,14 +1,16 @@
 import { Heart, Mic } from 'lucide-react';
 import type { StaffSummary } from '@/shared/api/types';
 import { EntityPortraitCard } from '@/shared/components/EntityPortraitCard';
+import type { ViewMode } from '@/shared/stores/usePrefsStore';
 import { formatCompactCount } from '@/shared/utils/formatters';
 
 interface StaffCardProps {
   staff: StaffSummary;
+  layout?: ViewMode;
   onSelect: (staff: StaffSummary) => void;
 }
 
-export function StaffCard({ staff, onSelect }: StaffCardProps) {
+export function StaffCard({ staff, layout = 'grid', onSelect }: StaffCardProps) {
   const title = staff.name.full || staff.name.native || 'Unknown Staff';
   const imageUrl = staff.image?.large || staff.image?.medium;
   const occupation =
@@ -23,6 +25,7 @@ export function StaffCard({ staff, onSelect }: StaffCardProps) {
       title={title}
       subtitle={occupation}
       imageUrl={imageUrl}
+      layout={layout}
       fallbackIcon={<Mic className="h-6 w-6" strokeWidth={1.75} aria-hidden="true" />}
       badgeTopLeft={
         typeof staff.favourites === 'number' ? (

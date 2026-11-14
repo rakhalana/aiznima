@@ -330,6 +330,14 @@ describe('SearchPage', () => {
     fireEvent.click(screen.getByRole('tab', { name: 'Character' }));
     expect(await screen.findByText('Frieren')).toBeInTheDocument();
 
+    // Toggle grid <-> row view beside search input
+    fireEvent.click(screen.getByRole('button', { name: /switch to row view/i }));
+    const gridToggle = screen.getByRole('button', { name: /switch to grid view/i });
+    expect(gridToggle).toHaveAttribute('aria-pressed', 'true');
+    expect(usePrefsStore.getState().searchViewMode).toBe('list');
+    fireEvent.click(gridToggle);
+    expect(usePrefsStore.getState().searchViewMode).toBe('grid');
+
     // Adaptive FilterSheet hides Search Category and Genres, exposing Birthday Today Only
     fireEvent.click(screen.getByRole('button', { name: /filters/i }));
     expect(await screen.findByRole('dialog', { name: /filter & sort/i })).toBeInTheDocument();

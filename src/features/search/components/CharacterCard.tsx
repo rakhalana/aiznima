@@ -1,14 +1,16 @@
 import { Heart, User } from 'lucide-react';
 import type { CharacterSummary } from '@/shared/api/types';
 import { EntityPortraitCard } from '@/shared/components/EntityPortraitCard';
+import type { ViewMode } from '@/shared/stores/usePrefsStore';
 import { formatCompactCount } from '@/shared/utils/formatters';
 
 interface CharacterCardProps {
   character: CharacterSummary;
+  layout?: ViewMode;
   onSelect: (character: CharacterSummary) => void;
 }
 
-export function CharacterCard({ character, onSelect }: CharacterCardProps) {
+export function CharacterCard({ character, layout = 'grid', onSelect }: CharacterCardProps) {
   const title = character.name.full || character.name.native || 'Unknown Character';
   const imageUrl = character.image?.large || character.image?.medium;
 
@@ -17,6 +19,7 @@ export function CharacterCard({ character, onSelect }: CharacterCardProps) {
       title={title}
       subtitle={character.name.native && character.name.native !== title ? character.name.native : null}
       imageUrl={imageUrl}
+      layout={layout}
       fallbackIcon={<User className="h-6 w-6" strokeWidth={1.75} aria-hidden="true" />}
       badgeTopLeft={
         typeof character.favourites === 'number' ? (
