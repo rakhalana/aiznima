@@ -255,16 +255,17 @@ export function MediaDetailPage() {
               </div>
             ) : null}
 
-            <div className="flex flex-wrap items-center gap-2 pt-0.5">
+            <div className="grid grid-cols-2 gap-2 pt-0.5">
               <Button
                 variant={entry ? 'secondary' : 'primary'}
                 size="sm"
+                className="w-full"
                 onClick={handleTrackClick}
                 leftIcon={
                   entry ? (
-                    <Edit3 className="h-4 w-4" strokeWidth={1.75} />
+                    <Edit3 className="h-4 w-4 shrink-0" strokeWidth={1.75} />
                   ) : (
-                    <BookmarkPlus className="h-4 w-4" strokeWidth={1.75} />
+                    <BookmarkPlus className="h-4 w-4 shrink-0" strokeWidth={1.75} />
                   )
                 }
               >
@@ -276,16 +277,17 @@ export function MediaDetailPage() {
               <Button
                 variant="secondary"
                 size="sm"
+                className="w-full"
                 onClick={() => void handleShareClick()}
                 title="Copy AniList link"
                 leftIcon={
                   copied ? (
                     <Check
-                      className="h-4 w-4 text-[var(--status-current-text)]"
+                      className="h-4 w-4 shrink-0 text-[var(--status-current-text)]"
                       strokeWidth={2}
                     />
                   ) : (
-                    <Share2 className="h-4 w-4" strokeWidth={1.75} />
+                    <Share2 className="h-4 w-4 shrink-0" strokeWidth={1.75} />
                   )
                 }
               >

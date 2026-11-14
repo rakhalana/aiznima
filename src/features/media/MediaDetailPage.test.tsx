@@ -496,7 +496,13 @@ describe('MediaDetailPage', () => {
       expect(screen.getByRole('heading', { name: 'Sousou no Frieren' })).toBeInTheDocument();
     });
 
-    fireEvent.click(screen.getByRole('button', { name: 'Share' }));
+    const addButton = screen.getByRole('button', { name: /add to list/i });
+    const shareButton = screen.getByRole('button', { name: 'Share' });
+    expect(addButton.parentElement?.className).toContain('grid-cols-2');
+    expect(addButton.className).toContain('w-full');
+    expect(shareButton.className).toContain('w-full');
+
+    fireEvent.click(shareButton);
     await waitFor(() => {
       expect(writeText).toHaveBeenCalledWith('https://anilist.co/anime/1');
       expect(screen.getByRole('button', { name: 'Copied' })).toBeInTheDocument();
