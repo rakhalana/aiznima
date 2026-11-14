@@ -316,7 +316,7 @@ export function SearchPage() {
           <div
             role="tablist"
             aria-label="Search category"
-            className="no-scrollbar flex max-w-full flex-nowrap gap-1 overflow-x-auto rounded-[10px] border border-[var(--border-hairline)] bg-[var(--bg-subtle)] p-1 lg:inline-flex"
+            className="flex w-full items-center gap-0.5 rounded-[10px] border border-[var(--border-hairline)] bg-[var(--bg-subtle)] p-0.5 sm:gap-1 sm:p-1 lg:inline-flex lg:w-auto"
           >
             {SEARCH_TABS.map((tab) => (
               <button
@@ -325,7 +325,7 @@ export function SearchPage() {
                 type="button"
                 aria-selected={urlFilters.type === tab.type}
                 onClick={() => handleSwitchType(tab.type)}
-                className={`shrink-0 whitespace-nowrap rounded-lg px-3 py-1.5 text-xs font-semibold transition-crisp ${
+                className={`flex-auto whitespace-nowrap rounded-lg px-1.5 py-1.5 text-center text-[11px] font-semibold transition-crisp sm:px-3 sm:text-xs ${
                   urlFilters.type === tab.type
                     ? 'bg-[var(--bg-surface)] text-[var(--text-primary)] shadow-token-xs'
                     : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'

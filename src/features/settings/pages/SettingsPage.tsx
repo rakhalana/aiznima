@@ -1,4 +1,4 @@
-import { LogIn, Moon, ShieldAlert, Sun, Trash2, User } from 'lucide-react';
+import { ArrowLeft, LogIn, Moon, ShieldAlert, Sun, Trash2, User } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useLoginPromptStore } from '@/features/auth/stores/useLoginPromptStore';
 import { queryClient } from '@/shared/api/queryClient';
@@ -27,7 +27,16 @@ export function SettingsPage() {
   };
 
   return (
-    <section className="mx-auto max-w-2xl space-y-6">
+    <section className="mx-auto max-w-2xl space-y-5 md:space-y-6">
+      <button
+        type="button"
+        onClick={() => navigate(-1)}
+        className="inline-flex items-center gap-1.5 text-xs font-semibold text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors md:hidden"
+      >
+        <ArrowLeft className="h-4 w-4" strokeWidth={1.75} />
+        Back
+      </button>
+
       <header>
         <h1 className="text-xl font-bold tracking-tight md:text-2xl">Settings</h1>
         <p className="mt-1 text-sm text-[var(--text-secondary)]">

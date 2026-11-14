@@ -145,6 +145,14 @@ describe('AppShell, AuthGuard & AuthCallback routes', () => {
     });
   });
 
+  it('renders mobile top header only on /profile and hides it on other routes', () => {
+    renderWithRoute('/search');
+    expect(screen.queryByRole('button', { name: 'Open settings' })).not.toBeInTheDocument();
+
+    renderWithRoute('/profile');
+    expect(screen.getByRole('button', { name: 'Open settings' })).toBeInTheDocument();
+  });
+
   it('renders 404 NotFoundPage for unknown paths', () => {
     renderWithRoute('/does-not-exist');
     expect(screen.getByRole('heading', { name: /page not found/i })).toBeInTheDocument();

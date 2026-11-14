@@ -51,6 +51,8 @@ export function AppShell({ children }: AppShellProps) {
   const openLoginPrompt = useLoginPromptStore((state) => state.openLoginPrompt);
 
   const isLoggedIn = Boolean(accessToken);
+  const showMobileHeader =
+    location.pathname === '/profile' || location.pathname.startsWith('/profile/');
   const isRateLimited = Boolean(rateLimitUntil && rateLimitUntil > Date.now());
   const retryRemaining =
     isRateLimited && rateLimitUntil
@@ -194,57 +196,63 @@ export function AppShell({ children }: AppShellProps) {
       </aside>
 
       {/* Main Content Wrapper */}
-      <div className="flex min-w-0 flex-1 flex-col">
-        {/* Mobile Top Bar */}
-        <header className="sticky top-0 z-30 flex items-center justify-between border-b border-[var(--border-hairline)] bg-[var(--bg-glass)] px-3.5 pb-2.5 pt-safe-header backdrop-blur-md sm:px-4 md:hidden">
-          <button
-            type="button"
-            onClick={() => navigate('/')}
-            className="flex items-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 rounded-lg"
-          >
-            <span className="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-[var(--accent-primary)] text-xs font-bold text-white shadow-token-xs">
-              A
-            </span>
-            <span className="text-base font-bold tracking-tight">Aiznima</span>
-          </button>
+      <div
+        className={`flex min-w-0 flex-1 flex-col ${
+          showMobileHeader ? '' : 'pt-safe-header md:pt-0'
+        }`}
+      >
+        {/* Mobile Top Bar (Profile only) */}
+        {showMobileHeader ? (
+          <header className="sticky top-0 z-30 flex items-center justify-between border-b border-[var(--border-hairline)] bg-[var(--bg-glass)] px-3.5 pb-2.5 pt-safe-header backdrop-blur-md sm:px-4 md:hidden">
+            <button
+              type="button"
+              onClick={() => navigate('/')}
+              className="flex items-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 rounded-lg"
+            >
+              <span className="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-[var(--accent-primary)] text-xs font-bold text-white shadow-token-xs">
+                A
+              </span>
+              <span className="text-base font-bold tracking-tight">Aiznima</span>
+            </button>
 
-          <div className="flex items-center gap-1">
-            {!isLoggedIn ? (
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={() =>
-                  openLoginPrompt(
-                    undefined,
-                    location.pathname + location.search,
-                  )
-                }
+            <div className="flex items-center gap-1">
+              {!isLoggedIn ? (
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() =>
+                    openLoginPrompt(
+                      undefined,
+                      location.pathname + location.search,
+                    )
+                  }
+                >
+                  Login
+                </Button>
+              ) : null}
+              <button
+                type="button"
+                onClick={() => void toggleTheme()}
+                aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+                className="inline-flex h-10 w-10 items-center justify-center rounded-lg text-[var(--text-secondary)] hover:bg-[var(--bg-subtle)]"
               >
-                Login
-              </Button>
-            ) : null}
-            <button
-              type="button"
-              onClick={() => void toggleTheme()}
-              aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
-              className="inline-flex h-10 w-10 items-center justify-center rounded-lg text-[var(--text-secondary)] hover:bg-[var(--bg-subtle)]"
-            >
-              {theme === 'dark' ? (
-                <Sun className="h-[18px] w-[18px]" strokeWidth={1.75} />
-              ) : (
-                <Moon className="h-[18px] w-[18px]" strokeWidth={1.75} />
-              )}
-            </button>
-            <button
-              type="button"
-              onClick={() => navigate('/settings')}
-              aria-label="Open settings"
-              className="inline-flex h-10 w-10 items-center justify-center rounded-lg text-[var(--text-secondary)] hover:bg-[var(--bg-subtle)]"
-            >
-              <Settings className="h-[18px] w-[18px]" strokeWidth={1.75} />
-            </button>
-          </div>
-        </header>
+                {theme === 'dark' ? (
+                  <Sun className="h-[18px] w-[18px]" strokeWidth={1.75} />
+                ) : (
+                  <Moon className="h-[18px] w-[18px]" strokeWidth={1.75} />
+                )}
+              </button>
+              <button
+                type="button"
+                onClick={() => navigate('/settings')}
+                aria-label="Open settings"
+                className="inline-flex h-10 w-10 items-center justify-center rounded-lg text-[var(--text-secondary)] hover:bg-[var(--bg-subtle)]"
+              >
+                <Settings className="h-[18px] w-[18px]" strokeWidth={1.75} />
+              </button>
+            </div>
+          </header>
+        ) : null}
 
         {/* Global Status Banners */}
         {isOffline || isRateLimited || sessionExpiredFlag ? (

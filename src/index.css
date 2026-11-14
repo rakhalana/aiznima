@@ -102,20 +102,22 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
-.pt-safe {
-  padding-top: env(safe-area-inset-top, 0px);
-}
+@layer utilities {
+  .pt-safe {
+    padding-top: env(safe-area-inset-top, 0px);
+  }
 
-.pb-safe {
-  padding-bottom: env(safe-area-inset-bottom, 0px);
-}
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
 
-.pt-safe-header {
-  padding-top: max(0.625rem, env(safe-area-inset-top, 0px));
-}
+  .pt-safe-header {
+    padding-top: max(0.625rem, env(safe-area-inset-top, 0px));
+  }
 
-.pb-safe-nav {
-  padding-bottom: max(0.25rem, env(safe-area-inset-bottom, 0px));
+  .pb-safe-nav {
+    padding-bottom: max(0.25rem, env(safe-area-inset-bottom, 0px));
+  }
 }
 
 .no-scrollbar {
