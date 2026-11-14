@@ -20,6 +20,7 @@ export function AuthGuard({
 }: AuthGuardProps) {
   const accessToken = useAuthStore((state) => state.accessToken);
   const isHydrated = useAuthStore((state) => state.isHydrated);
+  const sessionExpiredFlag = useAuthStore((state) => state.sessionExpiredFlag);
   const openLoginPrompt = useLoginPromptStore((state) => state.openLoginPrompt);
   const location = useLocation();
 
@@ -32,7 +33,7 @@ export function AuthGuard({
     );
   }
 
-  if (!accessToken) {
+  if (!accessToken && !sessionExpiredFlag) {
     return (
       <section className="mx-auto max-w-lg py-8">
         <div className="rounded-2xl border border-[var(--border-hairline)] bg-[var(--bg-surface)] p-6 text-center shadow-token-xs">
@@ -62,5 +63,35 @@ export function AuthGuard({
     );
   }
 
-  return <>{children}</>;
+  const showExpiredBanner = !accessToken && sessionExpiredFlag;
+
+  // Keep a stable wrapper root element so 401 session expiration never unmounts active children/drafts (AF-02).
+  return (
+    <div className={showExpiredBanner ? 'space-y-4' : undefined}>
+      {showExpiredBanner ? (
+        <div
+          role="alert"
+          className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-300/60 bg-[var(--status-paused-bg)] px-4 py-3 text-xs font-medium text-[var(--status-paused-text)]"
+        >
+          <span>
+            Your AniList session expired. Your unsaved draft is preserved — log in again to sync changes.
+          </span>
+          <Button
+            size="sm"
+            variant="primary"
+            leftIcon={<LogIn className="h-3.5 w-3.5" strokeWidth={1.75} />}
+            onClick={() =>
+              openLoginPrompt(
+                'Re-authenticate with AniList to save your pending changes.',
+                location.pathname + location.search,
+              )
+            }
+          >
+            Log in again
+          </Button>
+        </div>
+      ) : null}
+      {children}
+    </div>
+  );
 }

@@ -26,8 +26,39 @@ describe('AppShell, AuthGuard & AuthCallback routes', () => {
     useToastStore.setState({ toasts: [], rateLimitUntil: null, isOffline: false });
     vi.stubGlobal(
       'fetch',
-      vi.fn().mockResolvedValue(
-        new Response(
+      vi.fn().mockImplementation(async (_url, init) => {
+        const body = JSON.parse(String(init?.body ?? '{}')) as { query?: string };
+        if (body.query?.includes('PublicUserProfile')) {
+          return new Response(
+            JSON.stringify({
+              data: {
+                User: {
+                  id: 2,
+                  name: 'Natsu',
+                  about: null,
+                  avatar: null,
+                  bannerImage: null,
+                  siteUrl: 'https://anilist.co/user/Natsu',
+                  options: { titleLanguage: 'ROMAJI', displayAdultContent: false, profileColor: 'orange' },
+                  mediaListOptions: { scoreFormat: 'POINT_100', rowOrder: 'score' },
+                  statistics: {
+                    anime: { count: 12, meanScore: 80, minutesWatched: 1200, episodesWatched: 50 },
+                    manga: { count: 4, meanScore: 78, chaptersRead: 20, volumesRead: 2 },
+                  },
+                  favourites: { anime: { nodes: [] }, manga: { nodes: [] } },
+                },
+              },
+            }),
+            { status: 200, headers: { 'Content-Type': 'application/json' } },
+          );
+        }
+        if (body.query?.includes('UserMediaListCollection')) {
+          return new Response(
+            JSON.stringify({ data: { MediaListCollection: { hasNextChunk: false, lists: [] } } }),
+            { status: 200, headers: { 'Content-Type': 'application/json' } },
+          );
+        }
+        return new Response(
           JSON.stringify({
             data: {
               Viewer: {
@@ -45,8 +76,8 @@ describe('AppShell, AuthGuard & AuthCallback routes', () => {
             },
           }),
           { status: 200, headers: { 'Content-Type': 'application/json' } },
-        ),
-      ),
+        );
+      }),
     );
   });
 
@@ -67,16 +98,16 @@ describe('AppShell, AuthGuard & AuthCallback routes', () => {
     expect(screen.getByRole('dialog', { name: /log in with anilist/i })).toBeInTheDocument();
   });
 
-  it('allows public user lookup from /profile Guest gateway', () => {
+  it('allows public user lookup from /profile Guest gateway', async () => {
     renderWithRoute('/profile');
 
     const input = screen.getByPlaceholderText(/enter anilist username/i);
     fireEvent.change(input, { target: { value: 'Natsu' } });
     fireEvent.click(screen.getByRole('button', { name: /lookup/i }));
 
-    expect(
-      screen.getByRole('heading', { name: /public profile: natsu/i }),
-    ).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: 'Natsu' })).toBeInTheDocument();
+    });
   });
 
   it('completes OAuth callback and redirects back to saved returnTo route', async () => {

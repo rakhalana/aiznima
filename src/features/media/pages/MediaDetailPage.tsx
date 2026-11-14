@@ -9,6 +9,7 @@ import {
   getMediaHeroTitle,
   type MediaDetailTab,
 } from '@/features/media/components/MediaDetailTabs';
+import { ListEditorModal } from '@/features/my-list/components/ListEditorModal';
 import { NetworkError } from '@/shared/api/graphqlClient';
 import { Button } from '@/shared/components/Button';
 import { DetailSkeleton } from '@/shared/components/Skeleton';
@@ -16,7 +17,6 @@ import { ErrorState } from '@/shared/components/StateFeedback';
 import { useIsAdultFilter } from '@/shared/hooks/useIsAdultFilter';
 import { usePreferredTitleLanguage } from '@/shared/hooks/usePreferredTitleLanguage';
 import { useAuthStore } from '@/shared/stores/useAuthStore';
-import { useToastStore } from '@/shared/stores/useToastStore';
 import {
   formatListStatusLabel,
   formatMeanScore,
@@ -39,12 +39,12 @@ export function MediaDetailPage() {
 
   const [activeTab, setActiveTab] = useState<MediaDetailTab>('overview');
   const [revealedAdult, setRevealedAdult] = useState(false);
+  const [editorOpen, setEditorOpen] = useState(false);
 
   const { allowAdult } = useIsAdultFilter();
   const preferredLanguage = usePreferredTitleLanguage();
   const accessToken = useAuthStore((state) => state.accessToken);
   const openLoginPrompt = useLoginPromptStore((state) => state.openLoginPrompt);
-  const addToast = useToastStore((state) => state.addToast);
 
   const { data: media, isLoading, isError, error, refetch } = useMediaDetailQuery(validId);
 
@@ -97,10 +97,7 @@ export function MediaDetailPage() {
       return;
     }
 
-    addToast({
-      variant: 'info',
-      message: 'Full list editor is arriving in Phase 5.',
-    });
+    setEditorOpen(true);
   };
 
   return (
@@ -225,6 +222,13 @@ export function MediaDetailPage() {
         preferredLanguage={preferredLanguage}
         allowAdult={allowAdult || revealedAdult}
         onSelectMedia={(selected) => navigate(`/media/${selected.id}`)}
+      />
+
+      <ListEditorModal
+        open={editorOpen}
+        onClose={() => setEditorOpen(false)}
+        media={media}
+        entry={entry}
       />
     </div>
   );

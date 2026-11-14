@@ -273,6 +273,7 @@ export interface UserMediaStatistics {
 export interface UserOptions {
   titleLanguage: UserTitleLanguage | null;
   displayAdultContent: boolean | null;
+  includeAdultContentInSearch?: boolean | null;
   profileColor: string | null;
 }
 
@@ -329,6 +330,7 @@ export interface UpdateUserInput {
   about?: string;
   titleLanguage?: UserTitleLanguage;
   displayAdultContent?: boolean;
+  includeAdultContentInSearch?: boolean;
   scoreFormat?: ScoreFormat;
   profileColor?: string;
 }

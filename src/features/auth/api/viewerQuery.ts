@@ -4,89 +4,98 @@ import { anilistRequest } from '@/shared/api/graphqlClient';
 import type { UserProfile } from '@/shared/api/types';
 import { useAuthStore } from '@/shared/stores/useAuthStore';
 
+export const USER_PROFILE_FIELDS = `
+  id
+  name
+  about(asHtml: true)
+  avatar {
+    large
+    medium
+  }
+  bannerImage
+  siteUrl
+  options {
+    titleLanguage
+    displayAdultContent
+    includeAdultContentInSearch
+    profileColor
+  }
+  mediaListOptions {
+    scoreFormat
+    rowOrder
+  }
+  statistics {
+    anime {
+      count
+      meanScore
+      minutesWatched
+      episodesWatched
+    }
+    manga {
+      count
+      meanScore
+      chaptersRead
+      volumesRead
+    }
+  }
+  favourites {
+    anime(perPage: 12) {
+      nodes {
+        id
+        idMal
+        type
+        format
+        status
+        title {
+          romaji
+          english
+          native
+        }
+        coverImage {
+          large
+          medium
+          extraLarge
+          color
+        }
+        episodes
+        chapters
+        meanScore
+        isAdult
+        genres
+      }
+    }
+    manga(perPage: 12) {
+      nodes {
+        id
+        idMal
+        type
+        format
+        status
+        title {
+          romaji
+          english
+          native
+        }
+        coverImage {
+          large
+          medium
+          extraLarge
+          color
+        }
+        episodes
+        chapters
+        meanScore
+        isAdult
+        genres
+      }
+    }
+  }
+`;
+
 export const VIEWER_QUERY = `
   query ViewerProfile {
     Viewer {
-      id
-      name
-      about(asHtml: true)
-      avatar {
-        large
-        medium
-      }
-      bannerImage
-      siteUrl
-      options {
-        titleLanguage
-        displayAdultContent
-        profileColor
-      }
-      mediaListOptions {
-        scoreFormat
-        rowOrder
-      }
-      statistics {
-        anime {
-          count
-          meanScore
-          minutesWatched
-          episodesWatched
-        }
-        manga {
-          count
-          meanScore
-          chaptersRead
-          volumesRead
-        }
-      }
-      favourites {
-        anime(perPage: 12) {
-          nodes {
-            id
-            type
-            format
-            status
-            title {
-              romaji
-              english
-              native
-            }
-            coverImage {
-              large
-              medium
-              extraLarge
-              color
-            }
-            episodes
-            chapters
-            meanScore
-            isAdult
-          }
-        }
-        manga(perPage: 12) {
-          nodes {
-            id
-            type
-            format
-            status
-            title {
-              romaji
-              english
-              native
-            }
-            coverImage {
-              large
-              medium
-              extraLarge
-              color
-            }
-            episodes
-            chapters
-            meanScore
-            isAdult
-          }
-        }
-      }
+      ${USER_PROFILE_FIELDS}
     }
   }
 `;

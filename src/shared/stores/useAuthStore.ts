@@ -93,7 +93,6 @@ export const useAuthStore = create<AuthState>((set) => ({
     set({
       accessToken: null,
       expiresAt: null,
-      viewer: null,
       sessionExpiredFlag: true,
     });
   },
