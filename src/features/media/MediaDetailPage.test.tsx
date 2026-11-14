@@ -231,7 +231,7 @@ describe('MediaDetailPage', () => {
     expect(screen.getByText('Demon King Aftermath')).toBeInTheDocument();
 
     // Tabs switch cleanly
-    fireEvent.click(screen.getByRole('tab', { name: 'Relations' }));
+    fireEvent.click(screen.getByRole('tab', { name: 'Related' }));
     expect(screen.getByText('ADAPTATION')).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('tab', { name: 'Characters' }));
@@ -374,5 +374,85 @@ describe('MediaDetailPage', () => {
     expect(noBannerBack.parentElement?.className).toContain('sticky');
     expect(noBannerBack.parentElement?.className).toContain('z-30');
     expect(noBannerBack.parentElement?.nextElementSibling?.className).not.toContain('-mt-12');
+  });
+
+  it('clamps long synopsis with click-to-expand Read more, displays Popularity/Favorites, Native/English/Romaji titles, and Studio row', async () => {
+    const longDescription =
+      '<p>After the party of heroes defeated the Demon King, they restored peace to the land and returned to lives of solitude. Generations pass as the elven mage Frieren confronts the brevity of mortal lifespans and sets out once more on a quiet journey across the northern lands to understand human hearts.</p>';
+
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        new Response(
+          JSON.stringify({
+            data: {
+              Media: makeDetail({
+                description: longDescription,
+                relations: { edges: [] },
+              }),
+            },
+          }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } },
+        ),
+      ),
+    );
+
+    renderMediaRoute('/media/1');
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: 'Sousou no Frieren' })).toBeInTheDocument();
+    });
+
+    // Hero stats: Popularity & Favorites
+    expect(screen.getByText('250K Popularity')).toBeInTheDocument();
+    expect(screen.getByText('42K Favorites')).toBeInTheDocument();
+
+    // Long synopsis clamped with Read more
+    const readMoreBtn = screen.getByRole('button', { name: /read more/i });
+    expect(readMoreBtn).toHaveAttribute('aria-expanded', 'false');
+    const synopsisText = screen.getByText(/after the party of heroes/i);
+    expect(synopsisText.closest('.max-h-28')).not.toBeNull();
+
+    // Clicking synopsis container expands it
+    fireEvent.click(synopsisText);
+    const showLessBtn = screen.getByRole('button', { name: /show less/i });
+    expect(showLessBtn).toHaveAttribute('aria-expanded', 'true');
+    expect(synopsisText.closest('.max-h-28')).toBeNull();
+
+    // Toggle back to collapsed
+    fireEvent.click(showLessBtn);
+    expect(screen.getByRole('button', { name: /read more/i })).toHaveAttribute('aria-expanded', 'false');
+
+    // Details order: Season-Source, Start Date-End Date, dedicated full-row Studio, and Native/English/Romaji titles
+    const detailsHeading = screen.getByRole('heading', { name: 'Details' });
+    const detailsSection = detailsHeading.closest('section');
+    const dts = Array.from(detailsSection?.querySelectorAll('dt') ?? []).map((dt) => dt.textContent);
+    expect(dts).toEqual([
+      'Format',
+      'Status',
+      'Episodes',
+      'Duration',
+      'Season',
+      'Source',
+      'Start Date',
+      'End Date',
+      'Studio',
+      'Native',
+      'English',
+      'Romaji',
+    ]);
+    const studioDt = Array.from(detailsSection?.querySelectorAll('dt') ?? []).find(
+      (dt) => dt.textContent === 'Studio',
+    );
+    expect(studioDt?.parentElement?.className).toContain('col-span-2');
+    expect(studioDt?.parentElement?.className).toContain('sm:col-span-4');
+
+    expect(screen.getByText('葬送のフリーレン')).toBeInTheDocument();
+    expect(screen.getByText('Frieren: Beyond Journey’s End')).toBeInTheDocument();
+    expect(screen.getAllByText('Sousou no Frieren').length).toBeGreaterThanOrEqual(2);
+    expect(screen.getByText('Mar 22 2024')).toBeInTheDocument();
+
+    // Empty Related tab wording uses "related"
+    fireEvent.click(screen.getByRole('tab', { name: 'Related' }));
+    expect(screen.getByText('No related titles listed')).toBeInTheDocument();
   });
 });

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ArrowLeft, BookmarkPlus, Edit3, Star } from 'lucide-react';
+import { ArrowLeft, BookmarkPlus, Edit3, Heart, Star, Users } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useLoginPromptStore } from '@/features/auth/stores/useLoginPromptStore';
 import { useMediaDetailQuery } from '@/features/media/api/mediaQueries';
@@ -18,6 +18,7 @@ import { useIsAdultFilter } from '@/shared/hooks/useIsAdultFilter';
 import { usePreferredTitleLanguage } from '@/shared/hooks/usePreferredTitleLanguage';
 import { useAuthStore } from '@/shared/stores/useAuthStore';
 import {
+  formatCompactCount,
   formatListStatusLabel,
   formatMeanScore,
   formatMediaFormat,
@@ -25,7 +26,7 @@ import {
 
 const TABS: Array<{ id: MediaDetailTab; label: string }> = [
   { id: 'overview', label: 'Overview' },
-  { id: 'relations', label: 'Relations' },
+  { id: 'related', label: 'Related' },
   { id: 'characters', label: 'Characters' },
   { id: 'staff', label: 'Staff' },
   { id: 'recommendations', label: 'Recommendations' },
@@ -38,9 +39,17 @@ export function MediaDetailPage() {
   const parsedId = Number.parseInt(id ?? '', 10);
   const validId = !Number.isNaN(parsedId) && parsedId > 0 ? parsedId : null;
 
+  const [trackedId, setTrackedId] = useState(validId);
   const [activeTab, setActiveTab] = useState<MediaDetailTab>('overview');
   const [revealedAdult, setRevealedAdult] = useState(false);
   const [editorOpen, setEditorOpen] = useState(false);
+
+  if (trackedId !== validId) {
+    setTrackedId(validId);
+    setActiveTab('overview');
+    setRevealedAdult(false);
+    setEditorOpen(false);
+  }
 
   const { allowAdult } = useIsAdultFilter();
   const preferredLanguage = usePreferredTitleLanguage();
@@ -105,23 +114,23 @@ export function MediaDetailPage() {
     <div className="flex flex-col">
       <div
         className={`pointer-events-none sticky z-30 flex justify-start ${media.bannerImage
-            ? 'top-safe pl-3 pt-3 md:top-0 md:pl-4 md:pt-4'
-            : 'top-safe-float mb-3 md:top-4 md:mb-4'
+          ? 'top-safe pl-3 pt-3 md:top-0 md:pl-4 md:pt-4'
+          : 'top-safe-float mb-3 md:top-4 md:mb-4'
           }`}
       >
         <button
           type="button"
           onClick={() => navigate(-1)}
-          className="pointer-events-auto inline-flex h-9 items-center gap-1.5 rounded-full border border-[var(--border-hairline)] bg-[var(--bg-glass)] px-3.5 text-xs font-semibold text-[var(--text-primary)] shadow-token-sm backdrop-blur-md transition-crisp hover:bg-[var(--bg-surface)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40"
+          aria-label="Back"
+          className="pointer-events-auto inline-flex h-9 w-9 items-center justify-center rounded-full border border-[var(--border-hairline)] bg-[var(--bg-glass)] text-xs font-semibold text-[var(--text-primary)] shadow-token-sm backdrop-blur-md transition-crisp hover:bg-[var(--bg-surface)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40"
         >
           <ArrowLeft className="h-4 w-4" strokeWidth={1.75} />
-          Back
         </button>
       </div>
 
       {/* Banner + Header */}
       <section
-        className={`overflow-hidden rounded-2xl border border-[var(--border-hairline)] bg-[var(--bg-surface)] shadow-token-xs ${media.bannerImage ? '-mt-12 md:-mt-[60px]' : ''
+        className={`overflow-hidden rounded-2xl border border-[var(--border-hairline)] bg-[var(--bg-surface)] shadow-token-xs ${media.bannerImage ? '-mt-12 md:-mt-[52px]' : ''
           }`}
       >
         {media.bannerImage ? (
@@ -166,6 +175,29 @@ export function MediaDetailPage() {
             <h1 className="text-lg font-bold leading-snug tracking-tight text-[var(--text-primary)] sm:text-xl md:text-2xl">
               {title}
             </h1>
+
+            {typeof media.popularity === 'number' || typeof media.favourites === 'number' ? (
+              <div className="flex flex-wrap items-center gap-1.5 text-xs font-semibold">
+                {typeof media.popularity === 'number' ? (
+                  <span
+                    title={`Popularity: ${media.popularity.toLocaleString()}`}
+                    className="tabular-nums inline-flex items-center gap-1 rounded-md bg-[var(--bg-subtle)] px-2 py-0.5 text-[var(--text-secondary)]"
+                  >
+                    <Users className="h-3 w-3" strokeWidth={1.75} aria-hidden="true" />
+                    <span>{formatCompactCount(media.popularity)} Popularity</span>
+                  </span>
+                ) : null}
+                {typeof media.favourites === 'number' ? (
+                  <span
+                    title={`Favorites: ${media.favourites.toLocaleString()}`}
+                    className="tabular-nums inline-flex items-center gap-1 rounded-md bg-[var(--error-bg)] px-2 py-0.5 text-[var(--error-text)]"
+                  >
+                    <Heart className="h-3 w-3 fill-current" strokeWidth={1.75} aria-hidden="true" />
+                    <span>{formatCompactCount(media.favourites)} Favorites</span>
+                  </span>
+                ) : null}
+              </div>
+            ) : null}
           </div>
 
           <div className="col-span-2 space-y-2.5 sm:col-span-1 sm:col-start-2">
@@ -229,6 +261,7 @@ export function MediaDetailPage() {
 
       <div className="mt-4 md:mt-6">
         <MediaDetailTabs
+          key={media.id}
           media={media}
           activeTab={activeTab}
           preferredLanguage={preferredLanguage}

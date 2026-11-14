@@ -1,5 +1,5 @@
-import { type ReactNode, useState } from 'react';
-import { Briefcase, ExternalLink, Play, User } from 'lucide-react';
+import { type ReactNode, useEffect, useMemo, useRef, useState } from 'react';
+import { Briefcase, ChevronDown, ExternalLink, Play, User } from 'lucide-react';
 import { openExternalUrl } from '@/platform';
 import type { MediaDetail, MediaSummary, UserTitleLanguage } from '@/shared/api/types';
 import { EntityPortraitCard } from '@/shared/components/EntityPortraitCard';
@@ -14,10 +14,98 @@ import { sanitizeHtml } from '@/shared/utils/sanitizeHtml';
 
 export type MediaDetailTab =
   | 'overview'
-  | 'relations'
+  | 'related'
   | 'characters'
   | 'staff'
   | 'recommendations';
+
+const COLLAPSED_SYNOPSIS_HEIGHT = 112;
+
+interface SynopsisSectionProps {
+  html: string;
+}
+
+function SynopsisSection({ html }: SynopsisSectionProps) {
+  const plainLength = useMemo(
+    () => html.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim().length,
+    [html],
+  );
+  const lineBreakCount = useMemo(
+    () => (html.match(/<(?:p|br)\b/gi) ?? []).length,
+    [html],
+  );
+
+  const [expanded, setExpanded] = useState(false);
+  const [canCollapse, setCanCollapse] = useState(
+    () => plainLength > 200 || lineBreakCount >= 3,
+  );
+  const contentRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    const el = contentRef.current;
+    if (!el) {
+      return undefined;
+    }
+
+    const measure = () => {
+      if (el.scrollHeight > 0) {
+        setCanCollapse(el.scrollHeight > COLLAPSED_SYNOPSIS_HEIGHT + 4);
+      }
+    };
+
+    measure();
+    if (typeof ResizeObserver !== 'undefined') {
+      const observer = new ResizeObserver(measure);
+      observer.observe(el);
+      return () => observer.disconnect();
+    }
+    return undefined;
+  }, [html]);
+
+  const isClamped = canCollapse && !expanded;
+
+  return (
+    <section className="rounded-xl border border-[var(--border-hairline)] bg-[var(--bg-surface)] p-4 shadow-token-xs md:p-5">
+      <h2 className="mb-2 text-sm font-semibold text-[var(--text-primary)]">Synopsis</h2>
+      <div
+        onClick={(event) => {
+          if (isClamped && !(event.target as HTMLElement).closest('a')) {
+            setExpanded(true);
+          }
+        }}
+        className={`relative ${isClamped ? 'max-h-28 cursor-pointer overflow-hidden' : ''}`}
+      >
+        <div
+          ref={contentRef}
+          className="prose-sm max-w-none space-y-2 text-sm leading-relaxed text-[var(--text-secondary)] [&_a]:text-[var(--accent-primary)] [&_a]:underline"
+          dangerouslySetInnerHTML={{ __html: html }}
+        />
+        {isClamped ? (
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-[var(--bg-surface)] to-transparent"
+          />
+        ) : null}
+      </div>
+
+      {canCollapse ? (
+        <button
+          type="button"
+          aria-expanded={expanded}
+          onClick={() => setExpanded((prev) => !prev)}
+          className="mt-2 inline-flex items-center gap-1 rounded text-xs font-semibold text-[var(--accent-primary)] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40"
+        >
+          <span>{expanded ? 'Show less' : 'Read more'}</span>
+          <ChevronDown
+            className={`h-3.5 w-3.5 transition-transform duration-200 ${expanded ? 'rotate-180' : ''}`}
+            strokeWidth={2}
+            aria-hidden="true"
+          />
+        </button>
+      ) : null}
+    </section>
+  );
+}
 
 interface MediaDetailTabsProps {
   media: MediaDetail;
@@ -85,7 +173,7 @@ export function MediaDetailTabs({
         ? `https://www.youtube.com/watch?v=${media.trailer.id}`
         : null;
 
-    const infoItems: Array<{ label: string; value: ReactNode }> = [
+    const infoItems: Array<{ label: string; value: ReactNode; fullRow?: boolean }> = [
       { label: 'Format', value: formatMediaFormat(media.format) },
       { label: 'Status', value: media.status?.replace(/_/g, ' ') ?? 'Unknown' },
       {
@@ -115,26 +203,32 @@ export function MediaDetailTabs({
         value:
           media.season && media.seasonYear
             ? `${media.season.charAt(0) + media.season.slice(1).toLowerCase()} ${media.seasonYear}`
-            : formatFuzzyDate(media.startDate),
+            : media.seasonYear
+              ? String(media.seasonYear)
+              : '—',
       },
-      { label: 'Start Date', value: formatFuzzyDate(media.startDate) },
       { label: 'Source', value: media.source?.replace(/_/g, ' ') ?? 'Unknown' },
-      { label: 'Studio', value: studioValue },
+      { label: 'Start Date', value: formatFuzzyDate(media.startDate) },
+      {
+        label: 'End Date',
+        value: media.endDate?.year
+          ? formatFuzzyDate(media.endDate)
+          : media.status === 'RELEASING' || media.status === 'NOT_YET_RELEASED'
+            ? 'TBA'
+            : '—',
+      },
+      { label: 'Studio', value: studioValue, fullRow: true },
+    ];
+
+    const titleItems: Array<{ label: string; value: string }> = [
+      { label: 'Native', value: media.title.native || '—' },
+      { label: 'English', value: media.title.english || '—' },
+      { label: 'Romaji', value: media.title.romaji || '—' },
     ];
 
     return (
       <div className="space-y-4 md:space-y-6">
-        {cleanSynopsis ? (
-          <section className="rounded-xl border border-[var(--border-hairline)] bg-[var(--bg-surface)] p-4 shadow-token-xs md:p-5">
-            <h2 className="mb-2 text-sm font-semibold text-[var(--text-primary)]">
-              Synopsis
-            </h2>
-            <div
-              className="prose-sm max-w-none space-y-2 text-sm leading-relaxed text-[var(--text-secondary)] [&_a]:text-[var(--accent-primary)] [&_a]:underline"
-              dangerouslySetInnerHTML={{ __html: cleanSynopsis }}
-            />
-          </section>
-        ) : null}
+        {cleanSynopsis ? <SynopsisSection html={cleanSynopsis} /> : null}
 
         <section className="rounded-xl border border-[var(--border-hairline)] bg-[var(--bg-surface)] p-4 shadow-token-xs md:p-5">
           <h2 className="mb-3 text-sm font-semibold text-[var(--text-primary)]">
@@ -142,11 +236,24 @@ export function MediaDetailTabs({
           </h2>
           <dl className="grid grid-cols-2 gap-x-4 gap-y-3 sm:grid-cols-4">
             {infoItems.map((item) => (
-              <div key={item.label}>
+              <div key={item.label} className={item.fullRow ? 'col-span-2 sm:col-span-4' : ''}>
                 <dt className="text-[11px] font-medium uppercase tracking-wider text-[var(--text-muted)]">
                   {item.label}
                 </dt>
                 <dd className="mt-0.5 text-sm font-semibold text-[var(--text-primary)] tabular-nums">
+                  {item.value}
+                </dd>
+              </div>
+            ))}
+          </dl>
+
+          <dl className="mt-3.5 grid grid-cols-1 gap-x-4 gap-y-2.5 border-t border-[var(--border-hairline)] pt-3.5 sm:grid-cols-3">
+            {titleItems.map((item) => (
+              <div key={item.label} className="min-w-0">
+                <dt className="text-[11px] font-medium uppercase tracking-wider text-[var(--text-muted)]">
+                  {item.label}
+                </dt>
+                <dd className="mt-0.5 break-words text-sm font-semibold text-[var(--text-primary)]">
                   {item.value}
                 </dd>
               </div>
@@ -227,7 +334,7 @@ export function MediaDetailTabs({
     );
   }
 
-  if (activeTab === 'relations') {
+  if (activeTab === 'related') {
     const edges = (media.relations?.edges ?? []).filter(
       (edge) => edge.node && (allowAdult || !edge.node.isAdult),
     );
@@ -235,7 +342,7 @@ export function MediaDetailTabs({
     if (edges.length === 0) {
       return (
         <EmptyState
-          title="No relations listed"
+          title="No related titles listed"
           description="There are no prequels, sequels, or adaptations recorded for this title."
         />
       );
@@ -246,7 +353,7 @@ export function MediaDetailTabs({
         {edges.map((edge) => (
           <div key={edge.id} className="space-y-1">
             <span className="inline-block rounded-md bg-[var(--accent-soft)] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[var(--accent-ink)]">
-              {edge.relationType?.replace(/_/g, ' ') ?? 'Relation'}
+              {edge.relationType?.replace(/_/g, ' ') ?? 'Related'}
             </span>
             <MediaCard
               media={edge.node}
