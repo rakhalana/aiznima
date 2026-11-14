@@ -58,7 +58,7 @@ jobs:
         env:
           VITE_ANILIST_API_URL: https://graphql.anilist.co
           VITE_ANILIST_OAUTH_URL: https://anilist.co/api/v2/oauth/authorize
-          VITE_ANILIST_CLIENT_ID: ${{ secrets.VITE_ANILIST_CLIENT_ID_APK }}
+          VITE_ANILIST_CLIENT_ID: ${{ secrets.VITE_ANILIST_CLIENT_ID_APK || '56896' }}
           VITE_OAUTH_REDIRECT_URI: aiznima://auth/callback
           VITE_APP_PLATFORM: apk
         run: pnpm build:apk

@@ -4,7 +4,6 @@ import {
   completeOAuthLogin,
   parseOAuthFragment,
   sanitizeReturnPath,
-  startAniListLogin,
 } from './oauth';
 import { useAuthStore } from '@/shared/stores/useAuthStore';
 
@@ -96,6 +95,14 @@ describe('AniList OAuth Implicit Grant service', () => {
     expect(sanitizeReturnPath('/auth/callback')).toBe('/');
     expect(sanitizeReturnPath('/media/5')).toBe('/media/5');
 
-    await expect(startAniListLogin('/media/5')).rejects.toThrow(/Client ID/i);
+    vi.stubEnv('VITE_ANILIST_CLIENT_ID', '');
+    vi.resetModules();
+    try {
+      const { startAniListLogin: startWithoutClientId } = await import('./oauth');
+      await expect(startWithoutClientId('/media/5')).rejects.toThrow(/Client ID/i);
+    } finally {
+      vi.unstubAllEnvs();
+      vi.resetModules();
+    }
   });
 });
