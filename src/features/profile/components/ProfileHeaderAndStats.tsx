@@ -46,10 +46,10 @@ export function ProfileHeaderAndStats({
     : 0;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-6">
       <section className="overflow-hidden rounded-2xl border border-[var(--border-hairline)] bg-[var(--bg-surface)] shadow-token-xs">
         {user.bannerImage ? (
-          <div className="h-32 w-full overflow-hidden bg-[var(--bg-subtle)] md:h-44">
+          <div className="h-28 w-full overflow-hidden bg-[var(--bg-subtle)] sm:h-32 md:h-44">
             <img
               src={user.bannerImage}
               alt=""
@@ -59,7 +59,7 @@ export function ProfileHeaderAndStats({
           </div>
         ) : null}
 
-        <div className="flex flex-col gap-4 p-4 sm:flex-row sm:items-end sm:justify-between md:p-6">
+        <div className="flex flex-col gap-3.5 p-3.5 sm:flex-row sm:items-end sm:justify-between md:p-6">
           <div className="flex items-end gap-4">
             <div
               className={`flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-2xl border-2 border-[var(--bg-surface)] bg-[var(--accent-soft)] text-xl font-bold text-[var(--accent-ink)] shadow-token-sm ${
@@ -115,8 +115,8 @@ export function ProfileHeaderAndStats({
         ) : null}
       </section>
 
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-        <section className="rounded-xl border border-[var(--border-hairline)] bg-[var(--bg-surface)] p-4 shadow-token-xs">
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-2 md:gap-4">
+        <section className="rounded-xl border border-[var(--border-hairline)] bg-[var(--bg-surface)] p-3.5 shadow-token-xs sm:p-4">
           <div className="mb-3 flex items-center gap-2">
             <Film className="h-4 w-4 text-[var(--accent-primary)]" strokeWidth={1.75} />
             <h2 className="text-sm font-semibold text-[var(--text-primary)]">
@@ -159,7 +159,7 @@ export function ProfileHeaderAndStats({
           </dl>
         </section>
 
-        <section className="rounded-xl border border-[var(--border-hairline)] bg-[var(--bg-surface)] p-4 shadow-token-xs">
+        <section className="rounded-xl border border-[var(--border-hairline)] bg-[var(--bg-surface)] p-3.5 shadow-token-xs sm:p-4">
           <div className="mb-3 flex items-center gap-2">
             <BookOpen className="h-4 w-4 text-[var(--accent-primary)]" strokeWidth={1.75} />
             <h2 className="text-sm font-semibold text-[var(--text-primary)]">
@@ -208,7 +208,7 @@ export function ProfileHeaderAndStats({
           <h2 className="text-sm font-semibold text-[var(--text-primary)]">
             Favourite Anime
           </h2>
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
+          <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 sm:gap-3 md:grid-cols-4 lg:grid-cols-6">
             {favAnime.map((media) => (
               <MediaCard
                 key={media.id}
@@ -226,7 +226,7 @@ export function ProfileHeaderAndStats({
           <h2 className="text-sm font-semibold text-[var(--text-primary)]">
             Favourite Manga
           </h2>
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
+          <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 sm:gap-3 md:grid-cols-4 lg:grid-cols-6">
             {favManga.map((media) => (
               <MediaCard
                 key={media.id}

@@ -196,7 +196,7 @@ export function AppShell({ children }: AppShellProps) {
       {/* Main Content Wrapper */}
       <div className="flex min-w-0 flex-1 flex-col">
         {/* Mobile Top Bar */}
-        <header className="sticky top-0 z-30 flex items-center justify-between border-b border-[var(--border-hairline)] bg-[var(--bg-glass)] px-4 py-2.5 backdrop-blur-md pt-safe md:hidden">
+        <header className="sticky top-0 z-30 flex items-center justify-between border-b border-[var(--border-hairline)] bg-[var(--bg-glass)] px-3.5 pb-2.5 pt-safe-header backdrop-blur-md sm:px-4 md:hidden">
           <button
             type="button"
             onClick={() => navigate('/')}
@@ -247,60 +247,62 @@ export function AppShell({ children }: AppShellProps) {
         </header>
 
         {/* Global Status Banners */}
-        <div className="mx-auto w-full max-w-7xl px-4 pt-3 md:px-8">
-          {isOffline ? (
-            <div
-              role="status"
-              className="mb-3 flex items-center gap-2 rounded-xl border border-[var(--border-hairline)] bg-[var(--bg-surface)] px-3.5 py-2.5 text-xs font-medium text-[var(--text-secondary)] shadow-token-xs"
-            >
-              <WifiOff className="h-4 w-4 shrink-0 text-[var(--status-paused-text)]" strokeWidth={1.75} />
-              <span>You are currently offline. Cached data remains available.</span>
-            </div>
-          ) : null}
-
-          {isRateLimited ? (
-            <div
-              role="status"
-              className="mb-3 flex items-center gap-2 rounded-xl border border-amber-300/60 bg-[var(--status-paused-bg)] px-3.5 py-2.5 text-xs font-medium text-[var(--status-paused-text)]"
-            >
-              <TriangleAlert className="h-4 w-4 shrink-0" strokeWidth={1.75} />
-              <span className="tabular-nums">
-                Rate limit reached. Showing cached data — please wait ~{retryRemaining}s.
-              </span>
-            </div>
-          ) : null}
-
-          {sessionExpiredFlag ? (
-            <div
-              role="alert"
-              className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-red-200/70 bg-[var(--error-bg)] px-3.5 py-2.5 text-xs font-medium text-[var(--error-text)]"
-            >
-              <span>Your AniList session expired. Log in again to sync changes.</span>
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => {
-                    clearSessionExpiredFlag();
-                    openLoginPrompt(undefined, location.pathname + location.search);
-                  }}
-                  className="rounded-md bg-white/80 px-2.5 py-1 font-semibold text-[var(--error-text)] hover:bg-white"
-                >
-                  Log in
-                </button>
-                <button
-                  type="button"
-                  onClick={clearSessionExpiredFlag}
-                  className="rounded-md px-2 py-1 opacity-80 hover:opacity-100"
-                >
-                  Dismiss
-                </button>
+        {isOffline || isRateLimited || sessionExpiredFlag ? (
+          <div className="mx-auto w-full max-w-7xl px-3.5 pt-2.5 sm:px-4 md:px-8 md:pt-3">
+            {isOffline ? (
+              <div
+                role="status"
+                className="mb-2.5 flex items-center gap-2 rounded-xl border border-[var(--border-hairline)] bg-[var(--bg-surface)] px-3.5 py-2.5 text-xs font-medium text-[var(--text-secondary)] shadow-token-xs"
+              >
+                <WifiOff className="h-4 w-4 shrink-0 text-[var(--status-paused-text)]" strokeWidth={1.75} />
+                <span>You are currently offline. Cached data remains available.</span>
               </div>
-            </div>
-          ) : null}
-        </div>
+            ) : null}
+
+            {isRateLimited ? (
+              <div
+                role="status"
+                className="mb-2.5 flex items-center gap-2 rounded-xl border border-amber-300/60 bg-[var(--status-paused-bg)] px-3.5 py-2.5 text-xs font-medium text-[var(--status-paused-text)]"
+              >
+                <TriangleAlert className="h-4 w-4 shrink-0" strokeWidth={1.75} />
+                <span className="tabular-nums">
+                  Rate limit reached. Showing cached data — please wait ~{retryRemaining}s.
+                </span>
+              </div>
+            ) : null}
+
+            {sessionExpiredFlag ? (
+              <div
+                role="alert"
+                className="mb-2.5 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-red-200/70 bg-[var(--error-bg)] px-3.5 py-2.5 text-xs font-medium text-[var(--error-text)]"
+              >
+                <span>Your AniList session expired. Log in again to sync changes.</span>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      clearSessionExpiredFlag();
+                      openLoginPrompt(undefined, location.pathname + location.search);
+                    }}
+                    className="rounded-md bg-white/80 px-2.5 py-1 font-semibold text-[var(--error-text)] hover:bg-white"
+                  >
+                    Log in
+                  </button>
+                  <button
+                    type="button"
+                    onClick={clearSessionExpiredFlag}
+                    className="rounded-md px-2 py-1 opacity-80 hover:opacity-100"
+                  >
+                    Dismiss
+                  </button>
+                </div>
+              </div>
+            ) : null}
+          </div>
+        ) : null}
 
         {/* Main Page Area */}
-        <main className="mx-auto w-full max-w-7xl flex-1 px-4 pb-24 pt-2 md:px-8 md:pb-10 md:pt-4">
+        <main className="mx-auto w-full max-w-7xl flex-1 px-3.5 pb-24 pt-2.5 sm:px-4 md:px-8 md:pb-10 md:pt-4">
           {children}
         </main>
       </div>
@@ -308,9 +310,9 @@ export function AppShell({ children }: AppShellProps) {
       {/* Mobile Bottom Navigation */}
       <nav
         aria-label="Mobile navigation"
-        className="fixed inset-x-0 bottom-0 z-30 border-t border-[var(--border-hairline)] bg-[var(--bg-glass)] backdrop-blur-md pb-safe md:hidden"
+        className="fixed inset-x-0 bottom-0 z-30 border-t border-[var(--border-hairline)] bg-[var(--bg-glass)] backdrop-blur-md pb-safe-nav md:hidden"
       >
-        <div className="grid grid-cols-5 px-1 py-1">
+        <div className="grid grid-cols-5 px-1 pt-1">
           {NAV_ITEMS.map((item) => {
             const Icon = item.icon;
             return (

@@ -185,3 +185,16 @@ export function formatListStatusLabel(
       return mediaType === 'MANGA' ? 'Rereading' : 'Rewatching';
   }
 }
+
+export function formatCompactCount(value: number | null | undefined): string {
+  if (value === null || value === undefined || Number.isNaN(value)) {
+    return '0';
+  }
+  if (value >= 1_000_000) {
+    return `${(value / 1_000_000).toFixed(1).replace(/\.0$/, '')}M`;
+  }
+  if (value >= 1_000) {
+    return `${(value / 1_000).toFixed(1).replace(/\.0$/, '')}K`;
+  }
+  return String(Math.round(value));
+}

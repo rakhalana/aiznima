@@ -1,6 +1,6 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { SearchPage } from '@/features/search/pages/SearchPage';
 import type { MediaSummary } from '@/shared/api/types';
@@ -172,5 +172,190 @@ describe('SearchPage', () => {
     await waitFor(() => {
       expect(screen.getByText('Cowboy Bebop')).toBeInTheDocument();
     });
+  });
+
+  it('supports Character, Staff, Studios, and Users search tabs with adaptive FilterSheet', async () => {
+    function RouteEcho() {
+      const location = useLocation();
+      return <div data-testid="route-echo">{location.pathname}</div>;
+    }
+
+    const userSearchCalls: unknown[] = [];
+
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockImplementation(async (_url, init) => {
+        const body = JSON.parse(String(init?.body ?? '{}')) as {
+          query?: string;
+          variables?: { search?: string; isBirthday?: boolean };
+        };
+
+        if (body.query?.includes('SearchMetaCollections')) {
+          return new Response(
+            JSON.stringify({ data: { GenreCollection: ['Action'], MediaTagCollection: [] } }),
+            { status: 200, headers: { 'Content-Type': 'application/json' } },
+          );
+        }
+
+        if (body.query?.includes('SearchCharacters')) {
+          return new Response(
+            JSON.stringify({
+              data: {
+                Page: {
+                  pageInfo: { total: 1, perPage: 24, currentPage: 1, lastPage: 1, hasNextPage: false },
+                  characters: [
+                    {
+                      id: 17,
+                      name: { full: 'Frieren', native: 'フリーレン' },
+                      image: { medium: null, large: null },
+                      favourites: 24500,
+                    },
+                  ],
+                },
+              },
+            }),
+            { status: 200, headers: { 'Content-Type': 'application/json' } },
+          );
+        }
+
+        if (body.query?.includes('SearchStaff')) {
+          return new Response(
+            JSON.stringify({
+              data: {
+                Page: {
+                  pageInfo: { total: 1, perPage: 24, currentPage: 1, lastPage: 1, hasNextPage: false },
+                  staff: [
+                    {
+                      id: 10687,
+                      name: { full: 'Atsumi Tanezaki', native: '種崎敦美' },
+                      languageV2: 'Japanese',
+                      image: { medium: null, large: null },
+                      primaryOccupations: ['Voice Actor'],
+                      favourites: 12400,
+                    },
+                  ],
+                },
+              },
+            }),
+            { status: 200, headers: { 'Content-Type': 'application/json' } },
+          );
+        }
+
+        if (body.query?.includes('SearchStudios')) {
+          return new Response(
+            JSON.stringify({
+              data: {
+                Page: {
+                  pageInfo: { total: 1, perPage: 24, currentPage: 1, lastPage: 1, hasNextPage: false },
+                  studios: [
+                    {
+                      id: 11,
+                      name: 'Madhouse',
+                      isAnimationStudio: true,
+                      favourites: 41200,
+                    },
+                  ],
+                },
+              },
+            }),
+            { status: 200, headers: { 'Content-Type': 'application/json' } },
+          );
+        }
+
+        if (body.query?.includes('SearchUsers')) {
+          userSearchCalls.push(body.variables);
+          return new Response(
+            JSON.stringify({
+              data: {
+                Page: {
+                  pageInfo: { total: 1, perPage: 24, currentPage: 1, lastPage: 1, hasNextPage: false },
+                  users: [
+                    {
+                      id: 55,
+                      name: 'Rakha',
+                      avatar: { medium: null, large: null },
+                      bannerImage: null,
+                      moderatorRoles: null,
+                      statistics: {
+                        anime: { count: 25, minutesWatched: 3600 },
+                        manga: { count: 10, chaptersRead: 120 },
+                      },
+                    },
+                  ],
+                },
+              },
+            }),
+            { status: 200, headers: { 'Content-Type': 'application/json' } },
+          );
+        }
+
+        return new Response(
+          JSON.stringify({
+            data: {
+              Page: {
+                pageInfo: { total: 0, perPage: 24, currentPage: 1, lastPage: 1, hasNextPage: false },
+                media: [],
+              },
+            },
+          }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } },
+        );
+      }),
+    );
+
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    render(
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter initialEntries={['/search']}>
+          <Routes>
+            <Route path="/search" element={<SearchPage />} />
+            <Route path="/character/:id" element={<RouteEcho />} />
+            <Route path="/staff/:id" element={<RouteEcho />} />
+            <Route path="/studio/:id" element={<RouteEcho />} />
+            <Route path="/user/:username" element={<RouteEcho />} />
+          </Routes>
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+
+    // All 6 category tabs visible
+    expect(screen.getByRole('tab', { name: 'Anime' })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Manga' })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Character' })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Staff' })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Studios' })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Users' })).toBeInTheDocument();
+
+    // Switch to Character
+    fireEvent.click(screen.getByRole('tab', { name: 'Character' }));
+    expect(await screen.findByText('Frieren')).toBeInTheDocument();
+
+    // Adaptive FilterSheet hides Genres and exposes Birthday Today Only
+    fireEvent.click(screen.getByRole('button', { name: /filters/i }));
+    expect(await screen.findByRole('dialog', { name: /filter & sort/i })).toBeInTheDocument();
+    expect(screen.queryByText('Genres')).not.toBeInTheDocument();
+    expect(screen.getByText('Birthday Today Only')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /close modal/i }));
+
+    // Switch to Staff
+    fireEvent.click(screen.getByRole('tab', { name: 'Staff' }));
+    expect(await screen.findByText('Atsumi Tanezaki')).toBeInTheDocument();
+
+    // Switch to Studios
+    fireEvent.click(screen.getByRole('tab', { name: 'Studios' }));
+    expect(await screen.findByText('Madhouse')).toBeInTheDocument();
+
+    // Switch to Users (empty query shows prompt without sending blank SearchUsers request)
+    fireEvent.click(screen.getByRole('tab', { name: 'Users' }));
+    expect(await screen.findByRole('heading', { name: /search anilist users/i })).toBeInTheDocument();
+    expect(userSearchCalls).toHaveLength(0);
+
+    // Typing username queries Users and navigates to /user/:username on click
+    const input = screen.getByPlaceholderText(/search anilist usernames/i);
+    fireEvent.change(input, { target: { value: 'Rakha' } });
+
+    expect(await screen.findByText('Rakha', {}, { timeout: 2000 })).toBeInTheDocument();
+    fireEvent.click(screen.getByText('Rakha'));
+    expect(screen.getByTestId('route-echo')).toHaveTextContent('/user/Rakha');
   });
 });

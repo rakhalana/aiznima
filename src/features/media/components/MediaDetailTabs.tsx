@@ -1,7 +1,8 @@
-import { useState } from 'react';
-import { ExternalLink, Play, User } from 'lucide-react';
+import { type ReactNode, useState } from 'react';
+import { Briefcase, ExternalLink, Play, User } from 'lucide-react';
 import { openExternalUrl } from '@/platform';
 import type { MediaDetail, MediaSummary, UserTitleLanguage } from '@/shared/api/types';
+import { EntityPortraitCard } from '@/shared/components/EntityPortraitCard';
 import { MediaCard } from '@/shared/components/MediaCard';
 import { EmptyState } from '@/shared/components/StateFeedback';
 import {
@@ -11,7 +12,12 @@ import {
 } from '@/shared/utils/formatters';
 import { sanitizeHtml } from '@/shared/utils/sanitizeHtml';
 
-export type MediaDetailTab = 'overview' | 'relations' | 'characters' | 'recommendations';
+export type MediaDetailTab =
+  | 'overview'
+  | 'relations'
+  | 'characters'
+  | 'staff'
+  | 'recommendations';
 
 interface MediaDetailTabsProps {
   media: MediaDetail;
@@ -19,6 +25,9 @@ interface MediaDetailTabsProps {
   preferredLanguage: UserTitleLanguage;
   allowAdult: boolean;
   onSelectMedia: (media: MediaSummary) => void;
+  onSelectCharacter?: (characterId: number) => void;
+  onSelectStaff?: (staffId: number) => void;
+  onSelectStudio?: (studioId: number) => void;
 }
 
 export function MediaDetailTabs({
@@ -27,6 +36,9 @@ export function MediaDetailTabs({
   preferredLanguage,
   allowAdult,
   onSelectMedia,
+  onSelectCharacter,
+  onSelectStaff,
+  onSelectStudio,
 }: MediaDetailTabsProps) {
   const [showSpoilers, setShowSpoilers] = useState(false);
 
@@ -36,15 +48,44 @@ export function MediaDetailTabs({
     const safeTags = media.tags.filter((tag) => !tag.isMediaSpoiler);
     const visibleTags = showSpoilers ? media.tags : safeTags;
 
-    const mainStudios =
-      media.studios?.nodes.map((s) => s.name).join(', ') || 'Unknown';
+    const studios = media.studios?.edges?.length
+      ? [...media.studios.edges]
+          .sort((a, b) => Number(b.isMain) - Number(a.isMain))
+          .map((edge) => ({ id: edge.node.id, name: edge.node.name, isMain: edge.isMain }))
+      : (media.studios?.nodes ?? []).map((studio) => ({
+          id: studio.id,
+          name: studio.name,
+          isMain: true,
+        }));
+
+    const studioValue: ReactNode =
+      studios.length > 0 ? (
+        <div className="flex flex-wrap gap-1.5 pt-0.5">
+          {studios.map((studio) => (
+            <button
+              key={studio.id}
+              type="button"
+              onClick={() => onSelectStudio?.(studio.id)}
+              className={`rounded-md px-2 py-0.5 text-xs font-semibold transition-crisp ${
+                studio.isMain
+                  ? 'bg-[var(--accent-soft)] text-[var(--accent-ink)] hover:opacity-85'
+                  : 'border border-[var(--border-hairline)] bg-[var(--bg-canvas)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+              }`}
+            >
+              {studio.name}
+            </button>
+          ))}
+        </div>
+      ) : (
+        'Unknown'
+      );
 
     const trailerUrl =
       media.trailer?.site === 'youtube' && media.trailer.id
         ? `https://www.youtube.com/watch?v=${media.trailer.id}`
         : null;
 
-    const infoItems = [
+    const infoItems: Array<{ label: string; value: ReactNode }> = [
       { label: 'Format', value: formatMediaFormat(media.format) },
       { label: 'Status', value: media.status?.replace(/_/g, ' ') ?? 'Unknown' },
       {
@@ -78,11 +119,11 @@ export function MediaDetailTabs({
       },
       { label: 'Start Date', value: formatFuzzyDate(media.startDate) },
       { label: 'Source', value: media.source?.replace(/_/g, ' ') ?? 'Unknown' },
-      { label: 'Studio', value: mainStudios },
+      { label: 'Studio', value: studioValue },
     ];
 
     return (
-      <div className="space-y-6">
+      <div className="space-y-4 md:space-y-6">
         {cleanSynopsis ? (
           <section className="rounded-xl border border-[var(--border-hairline)] bg-[var(--bg-surface)] p-4 shadow-token-xs md:p-5">
             <h2 className="mb-2 text-sm font-semibold text-[var(--text-primary)]">
@@ -201,7 +242,7 @@ export function MediaDetailTabs({
     }
 
     return (
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 md:gap-4 lg:grid-cols-6">
+      <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 sm:gap-3 md:grid-cols-4 md:gap-4 lg:grid-cols-6">
         {edges.map((edge) => (
           <div key={edge.id} className="space-y-1">
             <span className="inline-block rounded-md bg-[var(--accent-soft)] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[var(--accent-ink)]">
@@ -231,50 +272,52 @@ export function MediaDetailTabs({
     }
 
     return (
-      <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+      <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 sm:gap-3 md:grid-cols-4 lg:grid-cols-6">
         {edges.map((edge) => {
           const va = edge.voiceActors[0];
           return (
             <div
               key={edge.id}
-              className="flex items-center justify-between gap-3 rounded-xl border border-[var(--border-hairline)] bg-[var(--bg-surface)] p-2.5 shadow-token-xs"
+              className="flex flex-col overflow-hidden rounded-xl border border-[var(--border-hairline)] bg-[var(--bg-surface)] shadow-token-xs"
             >
-              <div className="flex min-w-0 items-center gap-2.5">
-                <div className="h-14 w-11 shrink-0 overflow-hidden rounded-lg bg-[var(--bg-subtle)]">
+              <button
+                type="button"
+                onClick={() => onSelectCharacter?.(edge.node.id)}
+                className="group flex flex-1 flex-col text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--border-focus)]"
+              >
+                <div className="relative aspect-[2/3] w-full overflow-hidden bg-[var(--bg-subtle)]">
                   {edge.node.image?.medium ? (
                     <img
                       src={edge.node.image.medium}
                       alt={edge.node.name.full ?? 'Character'}
                       loading="lazy"
-                      className="h-full w-full object-cover"
+                      className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
                     />
                   ) : (
                     <div className="flex h-full w-full items-center justify-center text-[var(--text-muted)]">
-                      <User className="h-4 w-4" strokeWidth={1.75} />
+                      <User className="h-6 w-6" strokeWidth={1.5} />
                     </div>
                   )}
+                  {edge.role ? (
+                    <span className="absolute left-1.5 top-1.5 rounded-md bg-slate-900/75 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white backdrop-blur-xs">
+                      {edge.role}
+                    </span>
+                  ) : null}
                 </div>
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-semibold text-[var(--text-primary)]">
+                <div className="px-2.5 py-2">
+                  <p className="line-clamp-2 text-xs font-semibold leading-snug text-[var(--text-primary)] group-hover:text-[var(--accent-primary)] transition-colors">
                     {edge.node.name.full ?? 'Unknown'}
                   </p>
-                  <p className="text-xs text-[var(--text-muted)]">
-                    {edge.role ?? 'Character'}
-                  </p>
                 </div>
-              </div>
+              </button>
 
               {va ? (
-                <div className="flex min-w-0 items-center gap-2.5 text-right">
-                  <div className="min-w-0">
-                    <p className="truncate text-xs font-semibold text-[var(--text-primary)]">
-                      {va.name.full}
-                    </p>
-                    <p className="text-[11px] text-[var(--text-muted)]">
-                      {va.languageV2 ?? 'Japanese'}
-                    </p>
-                  </div>
-                  <div className="h-14 w-11 shrink-0 overflow-hidden rounded-lg bg-[var(--bg-subtle)]">
+                <button
+                  type="button"
+                  onClick={() => onSelectStaff?.(va.id)}
+                  className="flex items-center gap-2 border-t border-[var(--border-hairline)] bg-[var(--bg-canvas)]/70 px-2.5 py-1.5 text-left hover:bg-[var(--bg-subtle)] transition-crisp focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--border-focus)]"
+                >
+                  <div className="h-7 w-7 shrink-0 overflow-hidden rounded-full bg-[var(--bg-subtle)]">
                     {va.image?.medium ? (
                       <img
                         src={va.image.medium}
@@ -282,13 +325,53 @@ export function MediaDetailTabs({
                         loading="lazy"
                         className="h-full w-full object-cover"
                       />
-                    ) : null}
+                    ) : (
+                      <div className="flex h-full w-full items-center justify-center text-[var(--text-muted)]">
+                        <User className="h-3.5 w-3.5" strokeWidth={1.75} />
+                      </div>
+                    )}
                   </div>
-                </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-[11px] font-semibold text-[var(--text-primary)]">
+                      {va.name.full}
+                    </p>
+                    <p className="truncate text-[10px] text-[var(--text-muted)]">
+                      {va.languageV2 ?? 'Japanese'}
+                    </p>
+                  </div>
+                </button>
               ) : null}
             </div>
           );
         })}
+      </div>
+    );
+  }
+
+  if (activeTab === 'staff') {
+    const edges = media.staff?.edges ?? [];
+
+    if (edges.length === 0) {
+      return (
+        <EmptyState
+          title="No staff listed"
+          description="Staff credits are not available for this entry yet."
+        />
+      );
+    }
+
+    return (
+      <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 sm:gap-3 md:grid-cols-4 lg:grid-cols-6">
+        {edges.map((edge) => (
+          <EntityPortraitCard
+            key={edge.id}
+            title={edge.node.name.full ?? 'Unknown'}
+            subtitle={edge.role ?? edge.node.languageV2 ?? 'Staff'}
+            imageUrl={edge.node.image?.large ?? edge.node.image?.medium}
+            fallbackIcon={<Briefcase className="h-6 w-6" strokeWidth={1.5} />}
+            onSelect={() => onSelectStaff?.(edge.node.id)}
+          />
+        ))}
       </div>
     );
   }
@@ -309,7 +392,7 @@ export function MediaDetailTabs({
   }
 
   return (
-    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 md:gap-4 lg:grid-cols-6">
+    <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 sm:gap-3 md:grid-cols-4 md:gap-4 lg:grid-cols-6">
       {recommendations.map((rec) => (
         <MediaCard
           key={rec.id}

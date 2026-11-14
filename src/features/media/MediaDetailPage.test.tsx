@@ -1,6 +1,6 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { LoginPromptModal } from '@/features/auth/components/LoginPromptModal';
 import { useLoginPromptStore } from '@/features/auth/stores/useLoginPromptStore';
@@ -55,7 +55,13 @@ function makeDetail(overrides: Partial<MediaDetail> = {}): MediaDetail {
       { id: 2, name: 'Demon King Aftermath', rank: 80, isMediaSpoiler: true },
     ],
     studios: {
-      nodes: [{ id: 11, name: 'Madhouse', isAnimationStudio: true }],
+      edges: [
+        {
+          id: 110,
+          isMain: true,
+          node: { id: 11, name: 'Madhouse', isAnimationStudio: true, favourites: 41200 },
+        },
+      ],
     },
     externalLinks: [
       { id: 100, url: 'https://frieren-anime.jp', site: 'Official Site', type: 'INFO', color: null },
@@ -110,6 +116,22 @@ function makeDetail(overrides: Partial<MediaDetail> = {}): MediaDetail {
         },
       ],
     },
+    staff: {
+      edges: [
+        {
+          id: 800,
+          role: 'Director',
+          node: {
+            id: 12001,
+            name: { full: 'Keiichirou Saitou', native: '斎藤圭一郎' },
+            languageV2: 'Japanese',
+            image: { medium: null, large: null },
+            primaryOccupations: ['Director'],
+            favourites: 900,
+          },
+        },
+      ],
+    },
     recommendations: {
       nodes: [
         {
@@ -143,6 +165,11 @@ function makeDetail(overrides: Partial<MediaDetail> = {}): MediaDetail {
   };
 }
 
+function RouteEcho() {
+  const location = useLocation();
+  return <div data-testid="route-echo">{location.pathname}</div>;
+}
+
 function renderMediaRoute(initialEntry: string) {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
@@ -150,6 +177,9 @@ function renderMediaRoute(initialEntry: string) {
       <MemoryRouter initialEntries={[initialEntry]}>
         <Routes>
           <Route path="/media/:id" element={<MediaDetailPage />} />
+          <Route path="/character/:id" element={<RouteEcho />} />
+          <Route path="/staff/:id" element={<RouteEcho />} />
+          <Route path="/studio/:id" element={<RouteEcho />} />
         </Routes>
         <LoginPromptModal />
       </MemoryRouter>
@@ -208,12 +238,58 @@ describe('MediaDetailPage', () => {
     expect(screen.getByText('Frieren')).toBeInTheDocument();
     expect(screen.getByText(/Atsumi Tanezaki/)).toBeInTheDocument();
 
+    fireEvent.click(screen.getByRole('tab', { name: 'Staff' }));
+    expect(screen.getByText('Keiichirou Saitou')).toBeInTheDocument();
+    expect(screen.getByText('Director')).toBeInTheDocument();
+
     fireEvent.click(screen.getByRole('tab', { name: 'Recommendations' }));
     expect(screen.getByText('Violet Evergarden')).toBeInTheDocument();
 
     // Guest Add to List opens LoginPromptModal
     fireEvent.click(screen.getByRole('button', { name: /add to list/i }));
     expect(screen.getByRole('dialog', { name: /log in with anilist/i })).toBeInTheDocument();
+  });
+
+  it('cross-links studio, character, and voice actor / staff detail routes', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockImplementation(async () =>
+        new Response(JSON.stringify({ data: { Media: makeDetail() } }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        }),
+      ),
+    );
+
+    renderMediaRoute('/media/1');
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: 'Sousou no Frieren' })).toBeInTheDocument();
+    });
+
+    // Studio button click in Overview
+    fireEvent.click(screen.getByRole('button', { name: 'Madhouse' }));
+    expect(screen.getByTestId('route-echo')).toHaveTextContent('/studio/11');
+  });
+
+  it('navigates from Characters tab to /character/:id and /staff/:id', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockImplementation(async () =>
+        new Response(JSON.stringify({ data: { Media: makeDetail() } }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        }),
+      ),
+    );
+
+    renderMediaRoute('/media/1');
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: 'Sousou no Frieren' })).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByRole('tab', { name: 'Characters' }));
+    fireEvent.click(screen.getByText('Frieren'));
+    expect(screen.getByTestId('route-echo')).toHaveTextContent('/character/176754');
   });
 
   it('guards 18+ entries with AdultContentGate (AF-06) until explicitly revealed', async () => {

@@ -199,6 +199,124 @@ export interface MediaEdge {
   node: MediaSummary;
 }
 
+export type SearchEntityType =
+  | 'ANIME'
+  | 'MANGA'
+  | 'CHARACTER'
+  | 'STAFF'
+  | 'STUDIO'
+  | 'USER';
+
+export type CharacterSort =
+  | 'ID'
+  | 'ID_DESC'
+  | 'ROLE'
+  | 'ROLE_DESC'
+  | 'SEARCH_MATCH'
+  | 'FAVOURITES'
+  | 'FAVOURITES_DESC'
+  | 'RELEVANCE';
+
+export type StaffSort =
+  | 'ID'
+  | 'ID_DESC'
+  | 'ROLE'
+  | 'ROLE_DESC'
+  | 'LANGUAGE'
+  | 'LANGUAGE_DESC'
+  | 'SEARCH_MATCH'
+  | 'FAVOURITES'
+  | 'FAVOURITES_DESC'
+  | 'RELEVANCE';
+
+export type StudioSort =
+  | 'ID'
+  | 'ID_DESC'
+  | 'NAME'
+  | 'NAME_DESC'
+  | 'SEARCH_MATCH'
+  | 'FAVOURITES'
+  | 'FAVOURITES_DESC';
+
+export type UserSort =
+  | 'ID'
+  | 'ID_DESC'
+  | 'USERNAME'
+  | 'USERNAME_DESC'
+  | 'WATCHED_TIME'
+  | 'WATCHED_TIME_DESC'
+  | 'CHAPTERS_READ'
+  | 'CHAPTERS_READ_DESC'
+  | 'SEARCH_MATCH';
+
+export interface CharacterSummary {
+  id: number;
+  name: {
+    full: string | null;
+    native: string | null;
+  };
+  image: {
+    medium: string | null;
+    large: string | null;
+  } | null;
+  favourites?: number | null;
+}
+
+export interface StaffSummary {
+  id: number;
+  name: {
+    full: string | null;
+    native: string | null;
+  };
+  languageV2: string | null;
+  image: {
+    medium: string | null;
+    large: string | null;
+  } | null;
+  primaryOccupations?: string[] | null;
+  favourites?: number | null;
+}
+
+export interface StudioSummary {
+  id: number;
+  name: string;
+  isAnimationStudio: boolean;
+  favourites?: number | null;
+}
+
+export interface UserSearchSummary {
+  id: number;
+  name: string;
+  avatar: {
+    large: string | null;
+    medium: string | null;
+  } | null;
+  bannerImage: string | null;
+  moderatorRoles: string[] | null;
+  statistics?: {
+    anime?: {
+      count: number;
+      minutesWatched: number;
+    } | null;
+    manga?: {
+      count: number;
+      chaptersRead: number;
+    } | null;
+  } | null;
+}
+
+export interface MediaStaffEdge {
+  id: number;
+  role: string | null;
+  node: StaffSummary;
+}
+
+export interface MediaStudioEdge {
+  id: number;
+  isMain: boolean;
+  node: StudioSummary;
+}
+
 export interface RecommendationNode {
   id: number;
   rating: number | null;
@@ -217,11 +335,8 @@ export interface MediaDetail extends MediaSummary {
   trailer: MediaTrailer | null;
   tags: MediaTag[];
   studios: {
-    nodes: Array<{
-      id: number;
-      name: string;
-      isAnimationStudio: boolean;
-    }>;
+    edges?: MediaStudioEdge[];
+    nodes?: StudioSummary[];
   } | null;
   externalLinks: MediaExternalLink[];
   relations: {
@@ -230,9 +345,94 @@ export interface MediaDetail extends MediaSummary {
   characters: {
     edges: CharacterEdge[];
   } | null;
+  staff?: {
+    edges: MediaStaffEdge[];
+  } | null;
   recommendations: {
     nodes: RecommendationNode[];
   } | null;
+}
+
+export interface CharacterMediaEdge {
+  id: number;
+  relationType: MediaRelation | null;
+  characterRole: string | null;
+  voiceActors: Array<{
+    id: number;
+    name: {
+      full: string | null;
+    };
+    languageV2: string | null;
+    image: {
+      medium: string | null;
+    } | null;
+  }>;
+  node: MediaSummary;
+}
+
+export interface CharacterDetail extends CharacterSummary {
+  name: {
+    full: string | null;
+    native: string | null;
+    alternative?: string[] | null;
+    alternativeSpoiler?: string[] | null;
+  };
+  description: string | null;
+  gender: string | null;
+  dateOfBirth: FuzzyDate | null;
+  age: string | null;
+  bloodType: string | null;
+  siteUrl: string | null;
+}
+
+export interface StaffCharacterMediaEdge {
+  id: number;
+  characterRole: string | null;
+  characters: Array<{
+    id: number;
+    name: {
+      full: string | null;
+      native: string | null;
+    };
+    image: {
+      medium: string | null;
+      large: string | null;
+    } | null;
+  }>;
+  node: MediaSummary;
+}
+
+export interface StaffMediaEdge {
+  id: number;
+  staffRole: string | null;
+  node: MediaSummary;
+}
+
+export interface StaffDetail extends StaffSummary {
+  name: {
+    full: string | null;
+    native: string | null;
+    alternative?: string[] | null;
+  };
+  description: string | null;
+  gender: string | null;
+  dateOfBirth: FuzzyDate | null;
+  dateOfDeath: FuzzyDate | null;
+  age: number | null;
+  yearsActive: number[] | null;
+  homeTown: string | null;
+  bloodType: string | null;
+  siteUrl: string | null;
+}
+
+export interface StudioMediaEdge {
+  id: number;
+  isMainStudio: boolean;
+  node: MediaSummary;
+}
+
+export interface StudioDetail extends StudioSummary {
+  siteUrl: string | null;
 }
 
 export interface AiringScheduleItem {

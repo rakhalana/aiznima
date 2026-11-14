@@ -29,8 +29,8 @@ export function DiscoverPage() {
   };
 
   return (
-    <div className="space-y-7">
-      <header className="flex flex-wrap items-center justify-between gap-3">
+    <div className="space-y-5 md:space-y-7">
+      <header className="flex flex-wrap items-center justify-between gap-2.5 sm:gap-3">
         <div>
           <h1 className="text-xl font-bold tracking-tight md:text-2xl">Discover</h1>
           <p className="mt-0.5 text-xs text-[var(--text-secondary)] md:text-sm">

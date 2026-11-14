@@ -11,16 +11,15 @@ export function MediaCardSkeleton() {
 export function MediaRowSkeleton() {
   return (
     <div
-      className="flex items-center gap-3 rounded-xl border border-[var(--border-hairline)] bg-[var(--bg-surface)] p-3"
+      className="flex flex-col gap-2.5 rounded-xl border border-[var(--border-hairline)] bg-[var(--bg-surface)] p-2.5 sm:flex-row sm:items-center sm:gap-3 sm:p-3"
       aria-hidden="true"
     >
-      <div className="h-20 w-14 shrink-0 animate-pulse rounded-lg bg-[var(--bg-subtle)]" />
+      <div className="aspect-[3/4] w-full shrink-0 animate-pulse rounded-lg bg-[var(--bg-subtle)] sm:aspect-auto sm:h-24 sm:w-16" />
       <div className="flex-1 space-y-2">
         <div className="h-4 w-3/4 animate-pulse rounded bg-[var(--bg-subtle)]" />
-        <div className="h-3 w-1/3 animate-pulse rounded bg-[var(--bg-subtle)]" />
+        <div className="h-3 w-1/2 animate-pulse rounded bg-[var(--bg-subtle)]" />
         <div className="h-1.5 w-full animate-pulse rounded-full bg-[var(--bg-subtle)]" />
       </div>
-      <div className="h-11 w-11 shrink-0 animate-pulse rounded-full bg-[var(--bg-subtle)]" />
     </div>
   );
 }

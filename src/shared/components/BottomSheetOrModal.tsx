@@ -51,7 +51,7 @@ export function BottomSheetOrModal({
         <div className="flex justify-center pt-2.5 md:hidden" aria-hidden="true">
           <div className="h-1 w-10 rounded-full bg-[var(--border-strong)]" />
         </div>
-        <div className="flex items-center justify-between border-b border-[var(--border-hairline)] px-4 py-3 md:px-5">
+        <div className="flex items-center justify-between border-b border-[var(--border-hairline)] px-3.5 py-2.5 md:px-5 md:py-3">
           <h2 className="text-base font-semibold text-[var(--text-primary)]">{title}</h2>
           <button
             type="button"
@@ -62,7 +62,7 @@ export function BottomSheetOrModal({
             <X className="h-5 w-5" strokeWidth={1.75} />
           </button>
         </div>
-        <div className="overflow-y-auto px-4 py-4 md:px-5">{children}</div>
+        <div className="overflow-y-auto px-3.5 py-3.5 md:px-5 md:py-4">{children}</div>
       </div>
     </div>
   );

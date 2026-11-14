@@ -218,7 +218,7 @@ export function ListEditorModal({
           </div>
         ) : null}
 
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <div className="grid grid-cols-2 gap-2.5 sm:gap-3">
           <label className="space-y-1 text-xs font-semibold text-[var(--text-secondary)]">
             <span>Status</span>
             <select
@@ -269,8 +269,8 @@ export function ListEditorModal({
           )}
         </div>
 
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-          <div className="space-y-1 text-xs font-semibold text-[var(--text-secondary)]">
+        <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 sm:gap-3">
+          <div className="col-span-2 space-y-1 text-xs font-semibold text-[var(--text-secondary)] sm:col-span-1">
             <label htmlFor="editor-progress">
               {media.type === 'MANGA' ? 'Chapters' : 'Episodes'}{' '}
               {maxProgress ? `(of ${maxProgress})` : ''}
@@ -346,7 +346,7 @@ export function ListEditorModal({
           </label>
         </div>
 
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <div className="grid grid-cols-2 gap-2.5 sm:gap-3">
           <label className="space-y-1 text-xs font-semibold text-[var(--text-secondary)]">
             <span>Start Date</span>
             <input

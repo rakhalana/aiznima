@@ -53,3 +53,59 @@ export const MEDIA_SUMMARY_FIELDS = `
     updatedAt
   }
 `;
+
+export const CHARACTER_SUMMARY_FIELDS = `
+  id
+  name {
+    full
+    native
+  }
+  image {
+    medium
+    large
+  }
+  favourites
+`;
+
+export const STAFF_SUMMARY_FIELDS = `
+  id
+  name {
+    full
+    native
+  }
+  languageV2
+  image {
+    medium
+    large
+  }
+  primaryOccupations
+  favourites
+`;
+
+export const STUDIO_SUMMARY_FIELDS = `
+  id
+  name
+  isAnimationStudio
+  favourites
+`;
+
+export const USER_SUMMARY_FIELDS = `
+  id
+  name
+  avatar {
+    large
+    medium
+  }
+  bannerImage
+  moderatorRoles
+  statistics {
+    anime {
+      count
+      minutesWatched
+    }
+    manga {
+      count
+      chaptersRead
+    }
+  }
+`;

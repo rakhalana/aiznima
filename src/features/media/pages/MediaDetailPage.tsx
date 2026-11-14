@@ -27,6 +27,7 @@ const TABS: Array<{ id: MediaDetailTab; label: string }> = [
   { id: 'overview', label: 'Overview' },
   { id: 'relations', label: 'Relations' },
   { id: 'characters', label: 'Characters' },
+  { id: 'staff', label: 'Staff' },
   { id: 'recommendations', label: 'Recommendations' },
 ];
 
@@ -101,7 +102,7 @@ export function MediaDetailPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-6">
       <button
         type="button"
         onClick={() => navigate(-1)}
@@ -114,7 +115,7 @@ export function MediaDetailPage() {
       {/* Banner + Header */}
       <section className="overflow-hidden rounded-2xl border border-[var(--border-hairline)] bg-[var(--bg-surface)] shadow-token-xs">
         {media.bannerImage ? (
-          <div className="h-36 w-full overflow-hidden bg-[var(--bg-subtle)] md:h-52">
+          <div className="h-32 w-full overflow-hidden bg-[var(--bg-subtle)] sm:h-40 md:h-52">
             <img
               src={media.bannerImage}
               alt=""
@@ -124,10 +125,10 @@ export function MediaDetailPage() {
           </div>
         ) : null}
 
-        <div className="flex flex-col gap-4 p-4 sm:flex-row sm:items-end md:p-6">
+        <div className="grid grid-cols-[96px_1fr] items-end gap-x-3.5 gap-y-3 p-3.5 sm:grid-cols-[116px_1fr] sm:gap-x-5 sm:gap-y-2.5 md:grid-cols-[144px_1fr] md:p-6">
           <div
-            className={`aspect-[2/3] w-28 shrink-0 overflow-hidden rounded-[10px] border border-[var(--border-hairline)] bg-[var(--bg-subtle)] shadow-token-sm md:w-36 ${
-              media.bannerImage ? '-mt-14 sm:-mt-16' : ''
+            className={`aspect-[2/3] w-full overflow-hidden rounded-[10px] border border-[var(--border-hairline)] bg-[var(--bg-subtle)] shadow-token-sm sm:row-span-2 ${
+              media.bannerImage ? '-mt-12 sm:-mt-16' : ''
             }`}
           >
             {coverUrl ? (
@@ -135,8 +136,8 @@ export function MediaDetailPage() {
             ) : null}
           </div>
 
-          <div className="min-w-0 flex-1 space-y-2.5">
-            <div className="flex flex-wrap items-center gap-2 text-xs font-semibold">
+          <div className="min-w-0 space-y-2 self-end">
+            <div className="flex flex-wrap items-center gap-1.5 text-xs font-semibold">
               <span className="rounded-md bg-[var(--bg-subtle)] px-2 py-0.5 text-[var(--text-secondary)]">
                 {formatMediaFormat(media.format)}
               </span>
@@ -153,10 +154,12 @@ export function MediaDetailPage() {
               ) : null}
             </div>
 
-            <h1 className="text-xl font-bold tracking-tight text-[var(--text-primary)] md:text-2xl">
+            <h1 className="text-lg font-bold leading-snug tracking-tight text-[var(--text-primary)] sm:text-xl md:text-2xl">
               {title}
             </h1>
+          </div>
 
+          <div className="col-span-2 space-y-2.5 sm:col-span-1 sm:col-start-2">
             {media.genres.length > 0 ? (
               <div className="flex flex-wrap gap-1.5">
                 {media.genres.map((genre) => (
@@ -170,7 +173,7 @@ export function MediaDetailPage() {
               </div>
             ) : null}
 
-            <div className="pt-1">
+            <div className="pt-0.5">
               <Button
                 variant={entry ? 'secondary' : 'primary'}
                 size="sm"
@@ -222,6 +225,9 @@ export function MediaDetailPage() {
         preferredLanguage={preferredLanguage}
         allowAdult={allowAdult || revealedAdult}
         onSelectMedia={(selected) => navigate(`/media/${selected.id}`)}
+        onSelectCharacter={(id) => navigate(`/character/${id}`)}
+        onSelectStaff={(id) => navigate(`/staff/${id}`)}
+        onSelectStudio={(id) => navigate(`/studio/${id}`)}
       />
 
       <ListEditorModal

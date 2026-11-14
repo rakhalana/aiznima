@@ -1,11 +1,16 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ProfilePage } from '@/features/profile/pages/ProfilePage';
 import type { UserProfile } from '@/shared/api/types';
 import { useAuthStore } from '@/shared/stores/useAuthStore';
 import { usePrefsStore } from '@/shared/stores/usePrefsStore';
+
+function SearchRedirectEcho() {
+  const location = useLocation();
+  return <div data-testid="search-route">{`${location.pathname}${location.search}`}</div>;
+}
 
 function makeUser(overrides: Partial<UserProfile> = {}): UserProfile {
   return {
@@ -45,7 +50,7 @@ function makeUser(overrides: Partial<UserProfile> = {}): UserProfile {
   };
 }
 
-function renderProfileRoute(initialEntry: string) {
+function renderProfileRoute(initialEntry = '/profile') {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   });
@@ -54,14 +59,14 @@ function renderProfileRoute(initialEntry: string) {
       <MemoryRouter initialEntries={[initialEntry]}>
         <Routes>
           <Route path="/profile" element={<ProfilePage />} />
-          <Route path="/user/:username" element={<ProfilePage />} />
+          <Route path="/search" element={<SearchRedirectEcho />} />
         </Routes>
       </MemoryRouter>
     </QueryClientProvider>,
   );
 }
 
-describe('ProfilePage & Public User Lookup', () => {
+describe('ProfilePage', () => {
   beforeEach(() => {
     window.localStorage.clear();
     usePrefsStore.setState({ guestShowAdult: false, isHydrated: true });
@@ -76,6 +81,15 @@ describe('ProfilePage & Public User Lookup', () => {
 
   afterEach(() => {
     vi.unstubAllGlobals();
+  });
+
+  it('offers Search Users shortcut on Guest gateway instead of inline public lookup', () => {
+    renderProfileRoute('/profile');
+
+    expect(screen.queryByPlaceholderText(/enter anilist username/i)).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /search users/i }));
+
+    expect(screen.getByTestId('search-route')).toHaveTextContent('/search?type=USER');
   });
 
   it('renders authenticated viewer stats and submits EditProfileModal UpdateUser mutation', async () => {
@@ -112,8 +126,8 @@ describe('ProfilePage & Public User Lookup', () => {
     renderProfileRoute('/profile');
 
     expect(screen.getByRole('heading', { name: 'RakhaViewer' })).toBeInTheDocument();
-    expect(screen.getByText('600')).toBeInTheDocument(); // episodesWatched
-    expect(screen.getByText('240')).toBeInTheDocument(); // 14400 / 60 hours
+    expect(screen.getByText('600')).toBeInTheDocument();
+    expect(screen.getByText('240')).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: /edit profile/i }));
 
@@ -132,53 +146,5 @@ describe('ProfilePage & Public User Lookup', () => {
       ).not.toBeInTheDocument();
     });
     expect(useAuthStore.getState().viewer?.options?.titleLanguage).toBe('ENGLISH');
-  });
-
-  it('handles private public user lists gracefully (AF-05) on /user/:username', async () => {
-    vi.stubGlobal(
-      'fetch',
-      vi.fn().mockImplementation(async (_url, init) => {
-        const body = JSON.parse(String(init?.body ?? '{}')) as { query?: string };
-        if (body.query?.includes('PublicUserProfile')) {
-          return new Response(
-            JSON.stringify({ data: { User: makeUser({ name: 'PrivateUser' }) } }),
-            { status: 200, headers: { 'Content-Type': 'application/json' } },
-          );
-        }
-        return new Response(
-          JSON.stringify({
-            errors: [{ status: 403, message: 'User is private' }],
-          }),
-          { status: 403, headers: { 'Content-Type': 'application/json' } },
-        );
-      }),
-    );
-
-    renderProfileRoute('/user/PrivateUser');
-
-    await waitFor(() => {
-      expect(screen.getByRole('heading', { name: 'PrivateUser' })).toBeInTheDocument();
-    });
-    expect(
-      await screen.findByRole('heading', { name: /this user's list is private/i }),
-    ).toBeInTheDocument();
-  });
-
-  it('renders User not found when lookup target does not exist', async () => {
-    vi.stubGlobal(
-      'fetch',
-      vi.fn().mockResolvedValue(
-        new Response(
-          JSON.stringify({ errors: [{ status: 404, message: 'Not Found.' }] }),
-          { status: 404, headers: { 'Content-Type': 'application/json' } },
-        ),
-      ),
-    );
-
-    renderProfileRoute('/user/NoSuchUser999');
-
-    await waitFor(() => {
-      expect(screen.getByRole('heading', { name: /user not found/i })).toBeInTheDocument();
-    });
   });
 });

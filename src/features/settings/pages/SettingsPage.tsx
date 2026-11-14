@@ -36,14 +36,14 @@ export function SettingsPage() {
       </header>
 
       <div className="space-y-3 rounded-xl border border-[var(--border-hairline)] bg-[var(--bg-surface)] p-4 shadow-token-xs">
-        <div className="flex items-center justify-between gap-4">
+        <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
           <div>
             <h2 className="text-sm font-semibold text-[var(--text-primary)]">Appearance</h2>
             <p className="text-xs text-[var(--text-secondary)]">
               Paper Slate Light is default; switch to Deep Slate Dark anytime.
             </p>
           </div>
-          <div className="inline-flex rounded-[10px] border border-[var(--border-hairline)] bg-[var(--bg-subtle)] p-1">
+          <div className="inline-flex self-start rounded-[10px] border border-[var(--border-hairline)] bg-[var(--bg-subtle)] p-1 sm:self-auto">
             <button
               type="button"
               onClick={() => void setTheme('light')}
@@ -98,7 +98,7 @@ export function SettingsPage() {
           />
         </div>
 
-        <div className="flex items-center justify-between gap-4 border-t border-[var(--border-hairline)] pt-3">
+        <div className="flex flex-col gap-2.5 border-t border-[var(--border-hairline)] pt-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
           <div>
             <h2 className="text-sm font-semibold text-[var(--text-primary)]">
               Local Query Cache
@@ -110,6 +110,7 @@ export function SettingsPage() {
           <Button
             variant="secondary"
             size="sm"
+            className="self-start sm:self-auto"
             onClick={handleClearCache}
             leftIcon={<Trash2 className="h-3.5 w-3.5" strokeWidth={1.75} />}
           >

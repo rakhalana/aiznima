@@ -6,7 +6,7 @@ import {
   useScheduleQuery,
 } from '@/features/schedule/api/scheduleQueries';
 import { NetworkError } from '@/shared/api/graphqlClient';
-import { MediaRowSkeleton } from '@/shared/components/Skeleton';
+import { MediaCardSkeleton } from '@/shared/components/Skeleton';
 import { EmptyState, ErrorState } from '@/shared/components/StateFeedback';
 import { useIsAdultFilter } from '@/shared/hooks/useIsAdultFilter';
 import { usePreferredTitleLanguage } from '@/shared/hooks/usePreferredTitleLanguage';
@@ -46,7 +46,7 @@ export function SchedulePage() {
   );
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5 md:space-y-6">
       <header>
         <h1 className="text-xl font-bold tracking-tight md:text-2xl">Airing Schedule</h1>
         <p className="mt-0.5 text-xs text-[var(--text-secondary)] md:text-sm">
@@ -54,7 +54,7 @@ export function SchedulePage() {
         </p>
       </header>
 
-      <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 md:mx-0 md:px-0">
+      <div className="-mx-3.5 flex gap-2 overflow-x-auto px-3.5 pb-1 sm:-mx-4 sm:px-4 md:mx-0 md:px-0">
         {Array.from({ length: 7 }).map((_, idx) => {
           const { label, sub } = formatDayChip(idx);
           const active = dayOffset === idx;
@@ -63,7 +63,7 @@ export function SchedulePage() {
               key={idx}
               type="button"
               onClick={() => setDayOffset(idx)}
-              className={`min-w-[84px] shrink-0 rounded-xl border px-3 py-2 text-left transition-crisp ${
+              className={`min-w-[80px] shrink-0 rounded-xl border px-3 py-2 text-left transition-crisp ${
                 active
                   ? 'border-[var(--accent-primary)] bg-[var(--accent-soft)] text-[var(--accent-ink)]'
                   : 'border-[var(--border-hairline)] bg-[var(--bg-surface)] text-[var(--text-secondary)] hover:border-[var(--border-strong)]'
@@ -77,9 +77,9 @@ export function SchedulePage() {
       </div>
 
       {isLoading && !data ? (
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-          {Array.from({ length: 6 }).map((_, idx) => (
-            <MediaRowSkeleton key={idx} />
+        <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 md:grid-cols-4 md:gap-4 lg:grid-cols-6">
+          {Array.from({ length: 8 }).map((_, idx) => (
+            <MediaCardSkeleton key={idx} />
           ))}
         </div>
       ) : null}
@@ -103,19 +103,19 @@ export function SchedulePage() {
       ) : null}
 
       {data && data.length > 0 ? (
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+        <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 md:grid-cols-4 md:gap-4 lg:grid-cols-6">
           {data.map((item) => {
             const title = formatMediaTitle(item.media.title, preferredLanguage);
-            const cover = item.media.coverImage?.medium || item.media.coverImage?.large;
+            const cover = item.media.coverImage?.large || item.media.coverImage?.medium;
 
             return (
               <button
                 key={item.id}
                 type="button"
                 onClick={() => navigate(`/media/${item.mediaId}`)}
-                className="flex items-center gap-3 rounded-xl border border-[var(--border-hairline)] bg-[var(--bg-surface)] p-3 text-left shadow-token-xs transition-crisp hover:border-[var(--border-strong)] active:scale-[0.99]"
+                className="group flex flex-col overflow-hidden rounded-xl border border-[var(--border-hairline)] bg-[var(--bg-surface)] p-2 text-left shadow-token-xs transition-crisp hover:border-[var(--border-strong)] active:scale-[0.98]"
               >
-                <div className="h-20 w-14 shrink-0 overflow-hidden rounded-lg border border-[var(--border-hairline)] bg-[var(--bg-subtle)]">
+                <div className="relative aspect-[2/3] w-full overflow-hidden rounded-lg border border-[var(--border-hairline)] bg-[var(--bg-subtle)]">
                   {cover ? (
                     <img
                       src={cover}
@@ -124,24 +124,24 @@ export function SchedulePage() {
                       className="h-full w-full object-cover"
                     />
                   ) : null}
+
+                  <span className="tabular-nums absolute left-1.5 top-1.5 inline-flex items-center gap-1 rounded-md bg-slate-900/80 px-1.5 py-0.5 text-[10px] font-semibold text-white backdrop-blur-xs">
+                    <Clock className="h-2.5 w-2.5" strokeWidth={1.75} aria-hidden="true" />
+                    {formatLocalTime(item.airingAt)}
+                  </span>
+
+                  <span className="tabular-nums absolute right-1.5 top-1.5 rounded-md bg-[var(--accent-primary)] px-1.5 py-0.5 text-[10px] font-semibold text-white shadow-token-xs">
+                    {formatCountdown(item.timeUntilAiring)}
+                  </span>
                 </div>
 
-                <div className="min-w-0 flex-1">
-                  <h2 className="line-clamp-2 text-sm font-semibold text-[var(--text-primary)]">
+                <div className="mt-2 flex min-w-0 flex-1 flex-col justify-between gap-1">
+                  <h2 className="line-clamp-2 text-xs font-semibold leading-snug text-[var(--text-primary)] group-hover:text-[var(--accent-primary)] sm:text-sm">
                     {title}
                   </h2>
-                  <p className="mt-1 text-xs font-medium text-[var(--text-secondary)] tabular-nums">
+                  <p className="truncate text-[11px] font-medium text-[var(--text-muted)] tabular-nums">
                     Episode {item.episode} · {formatMediaFormat(item.media.format)}
                   </p>
-                  <div className="mt-1.5 flex items-center gap-2 text-[11px] font-semibold">
-                    <span className="tabular-nums inline-flex items-center gap-1 rounded-md bg-[var(--accent-soft)] px-2 py-0.5 text-[var(--accent-ink)]">
-                      <Clock className="h-3 w-3" strokeWidth={1.75} />
-                      {formatLocalTime(item.airingAt)}
-                    </span>
-                    <span className="tabular-nums text-[var(--text-muted)]">
-                      {formatCountdown(item.timeUntilAiring)}
-                    </span>
-                  </div>
                 </div>
               </button>
             );

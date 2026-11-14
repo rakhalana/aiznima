@@ -185,7 +185,7 @@ function MyListContent() {
       </div>
 
       {(!viewer?.id || isLoading) && !data ? (
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+        <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-2 md:gap-3.5 lg:grid-cols-3">
           {Array.from({ length: 6 }).map((_, idx) => (
             <MediaRowSkeleton key={idx} />
           ))}
@@ -217,7 +217,7 @@ function MyListContent() {
       ) : null}
 
       {visibleEntries.length > 0 ? (
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+        <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-2 md:gap-3.5 lg:grid-cols-3">
           {visibleEntries.map((entry) => (
             <ListEntryCard
               key={entry.id}

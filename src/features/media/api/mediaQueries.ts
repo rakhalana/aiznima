@@ -1,6 +1,10 @@
 import { useQuery } from '@tanstack/react-query';
 import { anilistRequest } from '@/shared/api/graphqlClient';
-import { MEDIA_SUMMARY_FIELDS } from '@/shared/api/mediaFragments';
+import {
+  MEDIA_SUMMARY_FIELDS,
+  STAFF_SUMMARY_FIELDS,
+  STUDIO_SUMMARY_FIELDS,
+} from '@/shared/api/mediaFragments';
 import type { MediaDetail } from '@/shared/api/types';
 
 const MEDIA_DETAIL_QUERY = `
@@ -35,11 +39,13 @@ const MEDIA_DETAIL_QUERY = `
         rank
         isMediaSpoiler
       }
-      studios(isMain: true) {
-        nodes {
+      studios(sort: [ID]) {
+        edges {
           id
-          name
-          isAnimationStudio
+          isMain
+          node {
+            ${STUDIO_SUMMARY_FIELDS}
+          }
         }
       }
       externalLinks {
@@ -82,6 +88,15 @@ const MEDIA_DETAIL_QUERY = `
             image {
               medium
             }
+          }
+        }
+      }
+      staff(sort: [RELEVANCE, ID], perPage: 20) {
+        edges {
+          id
+          role
+          node {
+            ${STAFF_SUMMARY_FIELDS}
           }
         }
       }

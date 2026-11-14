@@ -98,12 +98,19 @@ describe('AppShell, AuthGuard & AuthCallback routes', () => {
     expect(screen.getByRole('dialog', { name: /log in with anilist/i })).toBeInTheDocument();
   });
 
-  it('allows public user lookup from /profile Guest gateway', async () => {
+  it('navigates from /profile Guest gateway to Search Users tab', async () => {
     renderWithRoute('/profile');
 
-    const input = screen.getByPlaceholderText(/enter anilist username/i);
-    fireEvent.change(input, { target: { value: 'Natsu' } });
-    fireEvent.click(screen.getByRole('button', { name: /lookup/i }));
+    fireEvent.click(screen.getByRole('button', { name: /search users/i }));
+
+    await waitFor(() => {
+      expect(screen.getByRole('tab', { name: 'Users' })).toHaveAttribute('aria-selected', 'true');
+    });
+    expect(screen.getByRole('heading', { name: /search anilist users/i })).toBeInTheDocument();
+  });
+
+  it('renders public user profile directly at /user/:username route', async () => {
+    renderWithRoute('/user/Natsu');
 
     await waitFor(() => {
       expect(screen.getByRole('heading', { name: 'Natsu' })).toBeInTheDocument();

@@ -37,16 +37,15 @@ export function MediaCarousel({
         </Link>
       </div>
 
-      {/* Horizontal snap rail on small screens, structured grid on tablet/desktop */}
-      <div className="-mx-4 flex gap-3 overflow-x-auto px-4 pb-2 md:mx-0 md:grid md:grid-cols-4 md:gap-4 md:overflow-visible md:px-0 md:pb-0 lg:grid-cols-6">
+      {/* Structured 2-column grid on mobile expanding responsively on tablet/desktop */}
+      <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 sm:gap-3 md:grid-cols-4 md:gap-4 lg:grid-cols-6">
         {items.slice(0, 6).map((item) => (
-          <div key={item.id} className="w-36 shrink-0 md:w-auto">
-            <MediaCard
-              media={item}
-              preferredLanguage={preferredLanguage}
-              onSelect={onSelect}
-            />
-          </div>
+          <MediaCard
+            key={item.id}
+            media={item}
+            preferredLanguage={preferredLanguage}
+            onSelect={onSelect}
+          />
         ))}
       </div>
     </section>

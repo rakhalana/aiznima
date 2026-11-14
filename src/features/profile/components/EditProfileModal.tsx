@@ -177,7 +177,7 @@ export function EditProfileModal({ open, onClose, viewer }: EditProfileModalProp
           </div>
         </div>
 
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <div className="grid grid-cols-2 gap-2.5 sm:gap-3">
           <label className="space-y-1 text-xs font-semibold text-[var(--text-secondary)]">
             <span>Title Language</span>
             <select
