@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { ArrowLeft, BookmarkPlus, Edit3, Heart, Star, Users } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { ArrowLeft, BookmarkPlus, Check, Edit3, Heart, Share2, Star, Users } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useLoginPromptStore } from '@/features/auth/stores/useLoginPromptStore';
 import { useMediaDetailQuery } from '@/features/media/api/mediaQueries';
@@ -10,6 +10,7 @@ import {
   type MediaDetailTab,
 } from '@/features/media/components/MediaDetailTabs';
 import { ListEditorModal } from '@/features/my-list/components/ListEditorModal';
+import { copyTextToClipboard } from '@/platform';
 import { NetworkError } from '@/shared/api/graphqlClient';
 import { Button } from '@/shared/components/Button';
 import { DetailSkeleton } from '@/shared/components/Skeleton';
@@ -17,6 +18,7 @@ import { ErrorState } from '@/shared/components/StateFeedback';
 import { useIsAdultFilter } from '@/shared/hooks/useIsAdultFilter';
 import { usePreferredTitleLanguage } from '@/shared/hooks/usePreferredTitleLanguage';
 import { useAuthStore } from '@/shared/stores/useAuthStore';
+import { useToastStore } from '@/shared/stores/useToastStore';
 import {
   formatCompactCount,
   formatListStatusLabel,
@@ -43,18 +45,30 @@ export function MediaDetailPage() {
   const [activeTab, setActiveTab] = useState<MediaDetailTab>('overview');
   const [revealedAdult, setRevealedAdult] = useState(false);
   const [editorOpen, setEditorOpen] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const copyTimerRef = useRef<number | null>(null);
 
   if (trackedId !== validId) {
     setTrackedId(validId);
     setActiveTab('overview');
     setRevealedAdult(false);
     setEditorOpen(false);
+    setCopied(false);
   }
+
+  useEffect(() => {
+    return () => {
+      if (copyTimerRef.current !== null) {
+        window.clearTimeout(copyTimerRef.current);
+      }
+    };
+  }, []);
 
   const { allowAdult } = useIsAdultFilter();
   const preferredLanguage = usePreferredTitleLanguage();
   const accessToken = useAuthStore((state) => state.accessToken);
   const openLoginPrompt = useLoginPromptStore((state) => state.openLoginPrompt);
+  const addToast = useToastStore((state) => state.addToast);
 
   const { data: media, isLoading, isError, error, refetch } = useMediaDetailQuery(validId);
 
@@ -108,6 +122,32 @@ export function MediaDetailPage() {
     }
 
     setEditorOpen(true);
+  };
+
+  const handleShareClick = async () => {
+    const typeSlug = media.type === 'MANGA' ? 'manga' : 'anime';
+    const anilistUrl = `https://anilist.co/${typeSlug}/${media.id}`;
+    const ok = await copyTextToClipboard(anilistUrl);
+
+    if (ok) {
+      setCopied(true);
+      if (copyTimerRef.current !== null) {
+        window.clearTimeout(copyTimerRef.current);
+      }
+      copyTimerRef.current = window.setTimeout(() => {
+        setCopied(false);
+      }, 2000);
+      addToast({
+        variant: 'success',
+        message: 'AniList link copied to clipboard.',
+      });
+      return;
+    }
+
+    addToast({
+      variant: 'error',
+      message: 'Unable to copy link.',
+    });
   };
 
   return (
@@ -176,6 +216,10 @@ export function MediaDetailPage() {
               {title}
             </h1>
 
+
+          </div>
+
+          <div className="col-span-2 space-y-2.5 sm:col-span-1 sm:col-start-2">
             {typeof media.popularity === 'number' || typeof media.favourites === 'number' ? (
               <div className="flex flex-wrap items-center gap-1.5 text-xs font-semibold">
                 {typeof media.popularity === 'number' ? (
@@ -198,9 +242,6 @@ export function MediaDetailPage() {
                 ) : null}
               </div>
             ) : null}
-          </div>
-
-          <div className="col-span-2 space-y-2.5 sm:col-span-1 sm:col-start-2">
             {media.genres.length > 0 ? (
               <div className="flex flex-wrap gap-1.5">
                 {media.genres.map((genre) => (
@@ -214,7 +255,7 @@ export function MediaDetailPage() {
               </div>
             ) : null}
 
-            <div className="pt-0.5">
+            <div className="flex flex-wrap items-center gap-2 pt-0.5">
               <Button
                 variant={entry ? 'secondary' : 'primary'}
                 size="sm"
@@ -228,8 +269,27 @@ export function MediaDetailPage() {
                 }
               >
                 {entry?.status
-                  ? `${formatListStatusLabel(entry.status, media.type)} · ${entry.progress ?? 0}`
+                  ? `${formatListStatusLabel(entry.status, media.type)} · ${entry.progress ?? 0} eps.`
                   : 'Add to List'}
+              </Button>
+
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => void handleShareClick()}
+                title="Copy AniList link"
+                leftIcon={
+                  copied ? (
+                    <Check
+                      className="h-4 w-4 text-[var(--status-current-text)]"
+                      strokeWidth={2}
+                    />
+                  ) : (
+                    <Share2 className="h-4 w-4" strokeWidth={1.75} />
+                  )
+                }
+              >
+                {copied ? 'Copied' : 'Share'}
               </Button>
             </div>
           </div>

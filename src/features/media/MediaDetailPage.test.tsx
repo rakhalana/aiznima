@@ -8,6 +8,7 @@ import { MediaDetailPage } from '@/features/media/pages/MediaDetailPage';
 import type { MediaDetail } from '@/shared/api/types';
 import { useAuthStore } from '@/shared/stores/useAuthStore';
 import { usePrefsStore } from '@/shared/stores/usePrefsStore';
+import { useToastStore } from '@/shared/stores/useToastStore';
 
 function makeDetail(overrides: Partial<MediaDetail> = {}): MediaDetail {
   return {
@@ -454,5 +455,63 @@ describe('MediaDetailPage', () => {
     // Empty Related tab wording uses "related"
     fireEvent.click(screen.getByRole('tab', { name: 'Related' }));
     expect(screen.getByText('No related titles listed')).toBeInTheDocument();
+  });
+
+  it('copies AniList link for anime or manga when Share button is clicked', async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, 'clipboard', {
+      value: { writeText },
+      configurable: true,
+    });
+    useToastStore.setState({ toasts: [] });
+
+    vi.stubGlobal(
+      'fetch',
+      vi
+        .fn()
+        .mockResolvedValueOnce(
+          new Response(JSON.stringify({ data: { Media: makeDetail() } }), {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' },
+          }),
+        )
+        .mockResolvedValueOnce(
+          new Response(
+            JSON.stringify({
+              data: {
+                Media: makeDetail({
+                  id: 118586,
+                  type: 'MANGA',
+                  format: 'MANGA',
+                }),
+              },
+            }),
+            { status: 200, headers: { 'Content-Type': 'application/json' } },
+          ),
+        ),
+    );
+
+    const { unmount } = renderMediaRoute('/media/1');
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: 'Sousou no Frieren' })).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Share' }));
+    await waitFor(() => {
+      expect(writeText).toHaveBeenCalledWith('https://anilist.co/anime/1');
+      expect(screen.getByRole('button', { name: 'Copied' })).toBeInTheDocument();
+    });
+    expect(useToastStore.getState().toasts.some((t) => /copied/i.test(t.message))).toBe(true);
+
+    unmount();
+    renderMediaRoute('/media/118586');
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Share' })).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Share' }));
+    await waitFor(() => {
+      expect(writeText).toHaveBeenCalledWith('https://anilist.co/manga/118586');
+    });
   });
 });
