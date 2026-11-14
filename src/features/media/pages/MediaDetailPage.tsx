@@ -199,7 +199,7 @@ export function MediaDetailPage() {
       <div
         role="tablist"
         aria-label="Media detail sections"
-        className="flex gap-1 overflow-x-auto rounded-[10px] border border-[var(--border-hairline)] bg-[var(--bg-subtle)] p-1"
+        className="no-scrollbar flex gap-1 overflow-x-auto rounded-[10px] border border-[var(--border-hairline)] bg-[var(--bg-subtle)] p-1"
       >
         {TABS.map((tab) => (
           <button

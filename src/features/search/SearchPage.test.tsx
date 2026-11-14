@@ -330,9 +330,10 @@ describe('SearchPage', () => {
     fireEvent.click(screen.getByRole('tab', { name: 'Character' }));
     expect(await screen.findByText('Frieren')).toBeInTheDocument();
 
-    // Adaptive FilterSheet hides Genres and exposes Birthday Today Only
+    // Adaptive FilterSheet hides Search Category and Genres, exposing Birthday Today Only
     fireEvent.click(screen.getByRole('button', { name: /filters/i }));
     expect(await screen.findByRole('dialog', { name: /filter & sort/i })).toBeInTheDocument();
+    expect(screen.queryByText(/search category/i)).not.toBeInTheDocument();
     expect(screen.queryByText('Genres')).not.toBeInTheDocument();
     expect(screen.getByText('Birthday Today Only')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: /close modal/i }));

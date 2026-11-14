@@ -186,7 +186,7 @@ export function PublicUserPage() {
         ) : (
           <>
             {tabs.length > 1 ? (
-              <div className="flex gap-1.5 overflow-x-auto pb-1">
+              <div className="no-scrollbar flex gap-1.5 overflow-x-auto pb-1">
                 {tabs.map((tab) => {
                   const active = activeTabGroup?.key === tab.key;
                   return (

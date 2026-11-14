@@ -305,8 +305,8 @@ export function SearchPage() {
   return (
     <div className="space-y-4 md:space-y-5">
       <header className="space-y-3">
-        <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between">
-          <div>
+        <div className="flex flex-col gap-2.5 lg:flex-row lg:items-center lg:justify-between">
+          <div className="min-w-0">
             <h1 className="text-xl font-bold tracking-tight md:text-2xl">Search</h1>
             <p className="mt-0.5 text-xs text-[var(--text-secondary)] md:text-sm">
               Explore Anime, Manga, Characters, Staff, Studios, and Users.
@@ -316,7 +316,7 @@ export function SearchPage() {
           <div
             role="tablist"
             aria-label="Search category"
-            className="grid w-full grid-cols-3 gap-1 rounded-[10px] border border-[var(--border-hairline)] bg-[var(--bg-subtle)] p-1 sm:inline-flex sm:w-auto"
+            className="no-scrollbar flex max-w-full flex-nowrap gap-1 overflow-x-auto rounded-[10px] border border-[var(--border-hairline)] bg-[var(--bg-subtle)] p-1 lg:inline-flex"
           >
             {SEARCH_TABS.map((tab) => (
               <button
@@ -325,7 +325,7 @@ export function SearchPage() {
                 type="button"
                 aria-selected={urlFilters.type === tab.type}
                 onClick={() => handleSwitchType(tab.type)}
-                className={`rounded-lg px-2.5 py-1.5 text-xs font-semibold transition-crisp sm:px-3 ${
+                className={`shrink-0 whitespace-nowrap rounded-lg px-3 py-1.5 text-xs font-semibold transition-crisp ${
                   urlFilters.type === tab.type
                     ? 'bg-[var(--bg-surface)] text-[var(--text-primary)] shadow-token-xs'
                     : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'

@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import {
-  createDefaultSearchFilters,
   useSearchMetadataQuery,
   type SearchFilters,
 } from '@/features/search/api/searchQueries';
@@ -10,7 +9,6 @@ import type {
   MediaSeason,
   MediaSort,
   MediaStatus,
-  SearchEntityType,
   StaffSort,
   StudioSort,
   UserSort,
@@ -26,15 +24,6 @@ interface FilterSheetProps {
   onApply: (next: SearchFilters) => void;
   onReset: () => void;
 }
-
-const ENTITY_OPTIONS: Array<{ value: SearchEntityType; label: string }> = [
-  { value: 'ANIME', label: 'Anime' },
-  { value: 'MANGA', label: 'Manga' },
-  { value: 'CHARACTER', label: 'Character' },
-  { value: 'STAFF', label: 'Staff' },
-  { value: 'STUDIO', label: 'Studios' },
-  { value: 'USER', label: 'Users' },
-];
 
 const ANIME_FORMATS: MediaFormat[] = ['TV', 'MOVIE', 'OVA', 'ONA', 'SPECIAL', 'TV_SHORT'];
 const MANGA_FORMATS: MediaFormat[] = ['MANGA', 'NOVEL', 'ONE_SHOT'];
@@ -103,33 +92,6 @@ export function FilterSheet({
   return (
     <BottomSheetOrModal open={open} onClose={onClose} title="Filter & Sort">
       <div className="space-y-4">
-        {/* Search Category */}
-        <div className="space-y-1.5">
-          <span className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">
-            Search Category
-          </span>
-          <div className="grid grid-cols-3 gap-1.5 sm:grid-cols-6">
-            {ENTITY_OPTIONS.map((opt) => (
-              <button
-                key={opt.value}
-                type="button"
-                onClick={() =>
-                  setDraft((prev) => ({
-                    ...createDefaultSearchFilters(opt.value, prev.search),
-                  }))
-                }
-                className={`min-h-9 rounded-[10px] border px-2 text-xs font-semibold transition-crisp ${
-                  draft.type === opt.value
-                    ? 'border-[var(--accent-primary)] bg-[var(--accent-soft)] text-[var(--accent-ink)]'
-                    : 'border-[var(--border-hairline)] bg-[var(--bg-canvas)] text-[var(--text-secondary)]'
-                }`}
-              >
-                {opt.label}
-              </button>
-            ))}
-          </div>
-        </div>
-
         {/* Media (Anime / Manga) Filters */}
         {isMedia ? (
           <>

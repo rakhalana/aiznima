@@ -141,7 +141,7 @@ function MyListContent() {
         <div
           role="tablist"
           aria-label="List status filter"
-          className="flex gap-1.5 overflow-x-auto pb-1"
+          className="no-scrollbar flex gap-1.5 overflow-x-auto pb-1"
         >
           {tabs.map((tab) => {
             const active = activeTabGroup?.key === tab.key;

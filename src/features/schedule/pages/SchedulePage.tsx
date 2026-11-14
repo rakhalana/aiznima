@@ -54,7 +54,7 @@ export function SchedulePage() {
         </p>
       </header>
 
-      <div className="-mx-3.5 flex gap-2 overflow-x-auto px-3.5 pb-1 sm:-mx-4 sm:px-4 md:mx-0 md:px-0">
+      <div className="no-scrollbar -mx-3.5 flex gap-2 overflow-x-auto px-3.5 pb-1 sm:-mx-4 sm:px-4 md:mx-0 md:px-0">
         {Array.from({ length: 7 }).map((_, idx) => {
           const { label, sub } = formatDayChip(idx);
           const active = dayOffset === idx;
