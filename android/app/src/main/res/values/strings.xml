@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Aiznima</string>
+    <string name="title_activity_main">Aiznima</string>
+    <string name="package_name">com.aiznima.app</string>
+    <string name="custom_url_scheme">aiznima</string>
+</resources>
