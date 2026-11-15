@@ -577,6 +577,7 @@ describe('DiscoverPage', () => {
     expect(
       await screen.findByRole('button', { name: 'Hidden Gems' }),
     ).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: '80%+ Match' })).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Hidden Gems' }));
     expect(screen.getByText('Planned Gem Show')).toBeInTheDocument();
     expect(screen.queryByText('Madhouse Masterpiece')).not.toBeInTheDocument();

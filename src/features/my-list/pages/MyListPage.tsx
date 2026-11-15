@@ -63,7 +63,6 @@ function MyListContent() {
   const [filterQuery, setFilterQuery] = useState('');
   const [sortBy, setSortBy] = useState<ListSortOption>('UPDATED_DESC');
   const [formatFilter, setFormatFilter] = useState<MediaFormat | ''>('');
-  const [airingBehindOnly, setAiringBehindOnly] = useState(false);
   const [editingEntry, setEditingEntry] = useState<MediaListEntry | null>(null);
 
   const { data, isLoading, isError, error, refetch } = useMyListQuery(
@@ -92,23 +91,18 @@ function MyListContent() {
   );
 
   const hasActiveFilters =
-    filterQuery.trim().length > 0 ||
-    formatFilter !== '' ||
-    (mediaType === 'ANIME' && airingBehindOnly);
+    filterQuery.trim().length > 0 || formatFilter !== '';
 
   const visibleEntries = useMemo(() => {
     const filtered = filterListEntries(activeTabGroup?.entries ?? [], {
       query: filterQuery,
       format: formatFilter,
-      airingBehindOnly: mediaType === 'ANIME' && airingBehindOnly,
     });
     return sortListEntries(filtered, sortBy, preferredLanguage);
   }, [
     activeTabGroup,
     filterQuery,
     formatFilter,
-    mediaType,
-    airingBehindOnly,
     sortBy,
     preferredLanguage,
   ]);
@@ -181,7 +175,6 @@ function MyListContent() {
                 setMediaType(type);
                 setSelectedTab('CURRENT');
                 setFormatFilter('');
-                setAiringBehindOnly(false);
               }}
               className={`rounded-lg px-3.5 py-1.5 text-xs font-semibold transition-crisp ${
                 mediaType === type
@@ -225,8 +218,8 @@ function MyListContent() {
           })}
         </div>
 
-        <div className="flex flex-wrap items-center gap-2 md:gap-2.5 md:border-t md:border-[var(--border-hairline)] md:pt-3 lg:flex-nowrap lg:justify-between">
-          <div className="relative min-w-[200px] flex-1">
+        <div className="flex flex-col gap-2 md:flex-row md:flex-wrap md:items-center md:gap-2.5 md:border-t md:border-[var(--border-hairline)] md:pt-3 lg:flex-nowrap lg:justify-between">
+          <div className="relative w-full md:min-w-[200px] md:flex-1">
             <SearchIcon
               className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--text-muted)]"
               strokeWidth={1.75}
@@ -242,7 +235,7 @@ function MyListContent() {
             />
           </div>
 
-          <div className="flex flex-wrap items-center gap-2 md:ml-auto lg:shrink-0">
+          <div className="flex w-full items-center gap-2 md:ml-auto md:w-auto lg:shrink-0">
             <SelectDropdown
               ariaLabel="Sort list entries"
               size="sm"
@@ -250,7 +243,7 @@ function MyListContent() {
               value={sortBy}
               options={LIST_SORT_OPTIONS}
               onChange={(nextSort) => setSortBy(nextSort)}
-              className="min-w-[156px]"
+              className="min-w-0 flex-1 md:min-w-[156px] md:flex-none"
             />
 
             <SelectDropdown
@@ -260,23 +253,8 @@ function MyListContent() {
               value={formatFilter}
               options={formatOptions}
               onChange={(nextFormat) => setFormatFilter(nextFormat)}
-              className="min-w-[132px]"
+              className="min-w-0 flex-1 md:min-w-[132px] md:flex-none"
             />
-
-            {mediaType === 'ANIME' ? (
-              <button
-                type="button"
-                aria-pressed={airingBehindOnly}
-                onClick={() => setAiringBehindOnly((prev) => !prev)}
-                className={`min-h-9 shrink-0 rounded-[10px] border px-3 py-1.5 text-xs font-semibold transition-crisp ${
-                  airingBehindOnly
-                    ? 'border-[var(--accent-primary)] bg-[var(--accent-soft)] text-[var(--accent-ink)]'
-                    : 'border-[var(--border-hairline)] bg-[var(--bg-surface)] text-[var(--text-secondary)] hover:border-[var(--border-strong)]'
-                }`}
-              >
-                Airing / Behind
-              </button>
-            ) : null}
 
             <ViewModeToggle
               mode={listViewMode}
@@ -284,6 +262,7 @@ function MyListContent() {
                 void setListViewMode(listViewMode === 'grid' ? 'list' : 'grid')
               }
               size="sm"
+              className="shrink-0"
             />
           </div>
         </div>
@@ -326,7 +305,6 @@ function MyListContent() {
               ? () => {
                   setFilterQuery('');
                   setFormatFilter('');
-                  setAiringBehindOnly(false);
                 }
               : () => navigate('/')
           }

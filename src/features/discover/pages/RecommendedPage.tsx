@@ -9,11 +9,10 @@ import { EmptyState, ErrorState } from '@/shared/components/StateFeedback';
 import { usePreferredTitleLanguage } from '@/shared/hooks/usePreferredTitleLanguage';
 import { usePrefsStore } from '@/shared/stores/usePrefsStore';
 
-type RecommendationFilter = 'ALL' | 'TOP_MATCH' | 'HIDDEN_GEMS' | 'IN_PLANNING';
+type RecommendationFilter = 'ALL' | 'HIDDEN_GEMS' | 'IN_PLANNING';
 
 const FILTER_OPTIONS: Array<{ id: RecommendationFilter; label: string }> = [
   { id: 'ALL', label: 'All Matches' },
-  { id: 'TOP_MATCH', label: '80%+ Match' },
   { id: 'HIDDEN_GEMS', label: 'Hidden Gems' },
   { id: 'IN_PLANNING', label: 'In Planning' },
 ];
@@ -45,8 +44,6 @@ export function RecommendedPage() {
 
   const filteredItems = useMemo(() => {
     switch (filter) {
-      case 'TOP_MATCH':
-        return recommendations.filter((item) => item.matchPercent >= 80);
       case 'HIDDEN_GEMS':
         return recommendations.filter((item) => item.isHiddenGem);
       case 'IN_PLANNING':

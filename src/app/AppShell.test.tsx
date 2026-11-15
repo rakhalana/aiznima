@@ -1,6 +1,6 @@
 import { QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter, useNavigate } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { AppContent } from './App';
 import { useLogoutConfirmStore } from '@/features/auth/stores/useLogoutConfirmStore';
@@ -206,6 +206,58 @@ describe('AppShell, AuthGuard & AuthCallback routes', () => {
     expect(document.documentElement.scrollTop).toBe(0);
     expect(document.body.scrollTop).toBe(0);
     expect(scrollToSpy).toHaveBeenCalledWith({ top: 0, left: 0, behavior: 'auto' });
+  });
+
+  it('restores saved scroll position when navigating back via history', () => {
+    function HistoryBackTrigger() {
+      const navigate = useNavigate();
+      return (
+        <button type="button" onClick={() => navigate(-1)}>
+          History Back
+        </button>
+      );
+    }
+
+    const scrollToSpy = vi.spyOn(window, 'scrollTo');
+    const testQueryClient = createAppQueryClient();
+    render(
+      <QueryClientProvider client={testQueryClient}>
+        <MemoryRouter initialEntries={['/']}>
+          <AppContent />
+          <HistoryBackTrigger />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+
+    scrollToSpy.mockClear();
+    document.documentElement.scrollTop = 640;
+    fireEvent.scroll(window);
+
+    // Forward navigation resets scroll to top while preserving Home's 640px offset
+    fireEvent.click(screen.getAllByRole('link', { name: 'Search' })[0]!);
+    expect(document.documentElement.scrollTop).toBe(0);
+    expect(scrollToSpy).toHaveBeenCalledWith({ top: 0, left: 0, behavior: 'auto' });
+
+    // Back navigation restores the previous page's saved scroll offset
+    scrollToSpy.mockClear();
+    fireEvent.click(screen.getByRole('button', { name: 'History Back' }));
+    expect(document.documentElement.scrollTop).toBe(640);
+    expect(scrollToSpy).toHaveBeenCalledWith({ top: 640, left: 0, behavior: 'auto' });
+  });
+
+  it('portals mobile FilterSheet dialog to document.body outside AppShell z-10 content wrapper', async () => {
+    renderWithRoute('/search');
+
+    const mobileNav = screen.getByRole('navigation', { name: 'Mobile navigation' });
+    expect(mobileNav).toHaveClass('z-30');
+
+    fireEvent.click(screen.getByRole('button', { name: /filters/i }));
+
+    const dialog = await screen.findByRole('dialog', { name: /filter & sort/i });
+    expect(dialog).toBeInTheDocument();
+    expect(dialog.parentElement).toBe(document.body);
+    expect(dialog.contains(mobileNav)).toBe(false);
+    expect(dialog).toHaveClass('z-50');
   });
 
   it('renders desktop Floating Glass Top-Navbar with primary nav, utilities, and account controls', () => {

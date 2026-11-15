@@ -1,6 +1,11 @@
-import { useEffect, useLayoutEffect } from 'react';
+import { useEffect, useLayoutEffect, useRef } from 'react';
 import { QueryClientProvider } from '@tanstack/react-query';
-import { BrowserRouter, useLocation, useNavigate } from 'react-router-dom';
+import {
+  BrowserRouter,
+  useLocation,
+  useNavigate,
+  useNavigationType,
+} from 'react-router-dom';
 import { useViewerQuery } from '@/features/auth/api/viewerQuery';
 import { LoginPromptModal } from '@/features/auth/components/LoginPromptModal';
 import { LogoutConfirmModal } from '@/features/auth/components/LogoutConfirmModal';
@@ -17,11 +22,47 @@ import { useToastStore } from '@/shared/stores/useToastStore';
 import { AppShell } from './layouts/AppShell';
 import { AppRoutes } from './router';
 
+const MAX_SCROLL_HISTORY_KEYS = 50;
+
+function readScrollY(): number {
+  return Math.max(
+    window.scrollY || 0,
+    document.documentElement.scrollTop || 0,
+    document.body.scrollTop || 0,
+  );
+}
+
+function applyScrollY(y: number): void {
+  document.documentElement.scrollTop = y;
+  document.body.scrollTop = y;
+  window.scrollTo?.({ top: y, left: 0, behavior: 'auto' });
+}
+
+function saveScrollPosition(map: Map<string, number>, key: string, y: number): void {
+  if (map.has(key)) {
+    map.delete(key);
+  }
+  map.set(key, y);
+  while (map.size > MAX_SCROLL_HISTORY_KEYS) {
+    const oldestKey = map.keys().next().value;
+    if (oldestKey === undefined) {
+      break;
+    }
+    map.delete(oldestKey);
+  }
+}
+
 function AppRuntimeEffects() {
   const location = useLocation();
   const navigate = useNavigate();
+  const navigationType = useNavigationType();
   const hydrateAuth = useAuthStore((state) => state.hydrate);
   const hydratePrefs = usePrefsStore((state) => state.hydrate);
+  const scrollPositionsRef = useRef<Map<string, number>>(new Map());
+  const activeKeyRef = useRef(location.key);
+  const activePathnameRef = useRef(location.pathname);
+  const isFirstRenderRef = useRef(true);
+  const hasScrollEventForActiveKeyRef = useRef(false);
 
   useViewerQuery();
 
@@ -36,11 +77,54 @@ function AppRuntimeEffects() {
     };
   }, []);
 
+  useEffect(() => {
+    const handleScroll = () => {
+      hasScrollEventForActiveKeyRef.current = true;
+      saveScrollPosition(
+        scrollPositionsRef.current,
+        activeKeyRef.current,
+        readScrollY(),
+      );
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+    };
+  }, []);
+
   useLayoutEffect(() => {
-    document.documentElement.scrollTop = 0;
-    document.body.scrollTop = 0;
-    window.scrollTo?.({ top: 0, left: 0, behavior: 'auto' });
-  }, [location.pathname]);
+    if (isFirstRenderRef.current) {
+      isFirstRenderRef.current = false;
+      activeKeyRef.current = location.key;
+      activePathnameRef.current = location.pathname;
+      hasScrollEventForActiveKeyRef.current = false;
+      applyScrollY(0);
+      return;
+    }
+
+    const prevKey = activeKeyRef.current;
+    const prevPathname = activePathnameRef.current;
+
+    if (prevKey !== location.key) {
+      const currentY = readScrollY();
+      const recordedY = scrollPositionsRef.current.get(prevKey) ?? 0;
+      if (!hasScrollEventForActiveKeyRef.current || currentY > recordedY) {
+        saveScrollPosition(scrollPositionsRef.current, prevKey, currentY);
+      }
+    }
+
+    activeKeyRef.current = location.key;
+    activePathnameRef.current = location.pathname;
+    hasScrollEventForActiveKeyRef.current = false;
+
+    if (navigationType === 'POP') {
+      const savedY = scrollPositionsRef.current.get(location.key) ?? 0;
+      applyScrollY(savedY);
+    } else if (location.pathname !== prevPathname) {
+      applyScrollY(0);
+    }
+  }, [location.key, location.pathname, navigationType]);
 
   useEffect(() => {
     void hydrateAuth();

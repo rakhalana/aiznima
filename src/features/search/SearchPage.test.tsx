@@ -110,6 +110,7 @@ describe('SearchPage', () => {
 
     const dialog = await screen.findByRole('dialog', { name: /filter & sort/i });
     expect(dialog).toBeInTheDocument();
+    expect(dialog.parentElement).toBe(document.body);
     const scrollBody = dialog.querySelector('.overflow-y-auto');
     const applyButton = screen.getByRole('button', { name: /apply filters/i });
     expect(scrollBody).not.toBeNull();

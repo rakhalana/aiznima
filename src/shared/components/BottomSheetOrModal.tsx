@@ -1,4 +1,5 @@
 import { useEffect, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 
 interface BottomSheetOrModalProps {
@@ -39,7 +40,7 @@ export function BottomSheetOrModal({
     return null;
   }
 
-  return (
+  const content = (
     <div
       className="fixed inset-0 z-50 flex items-end justify-center md:items-center md:p-4"
       role="dialog"
@@ -83,4 +84,8 @@ export function BottomSheetOrModal({
       </div>
     </div>
   );
+
+  return typeof document !== 'undefined'
+    ? createPortal(content, document.body)
+    : content;
 }

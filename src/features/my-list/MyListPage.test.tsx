@@ -294,7 +294,7 @@ describe('MyListPage & ListEditorModal', () => {
     expect(card).toHaveClass('flex-row');
   });
 
-  it('merges hasNextChunk collection pages, displays airing/behind badges, and supports sort, format & airing filters', async () => {
+  it('merges hasNextChunk collection pages, displays airing/behind badges, and supports full-width mobile sort & format controls', async () => {
     const futureSec = Math.floor(Date.now() / 1000) + 5 * 3600;
     const chunk1Entry = makeEntry({
       id: 2001,
@@ -380,22 +380,24 @@ describe('MyListPage & ListEditorModal', () => {
     expect(screen.getByText(/Ep 12 in/i)).toBeInTheDocument();
     expect(screen.getByText('Behind 7 ep')).toBeInTheDocument();
 
-    // Quick Airing / Behind toggle hides non-airing finished movies
-    fireEvent.click(screen.getByRole('button', { name: /airing \/ behind/i }));
-    expect(screen.getByText('Blue Box')).toBeInTheDocument();
-    expect(screen.queryByText('A Silent Voice')).not.toBeInTheDocument();
+    // Airing / Behind filter pill is removed; Sort & Format share full mobile width in one row
+    expect(screen.queryByRole('button', { name: /airing \/ behind/i })).not.toBeInTheDocument();
+    const sortCombobox = screen.getByRole('combobox', { name: 'Sort list entries' });
+    const formatCombobox = screen.getByRole('combobox', { name: 'Filter by format' });
+    expect(sortCombobox.parentElement).toHaveClass('min-w-0', 'flex-1', 'md:min-w-[156px]', 'md:flex-none');
+    expect(formatCombobox.parentElement).toHaveClass('min-w-0', 'flex-1', 'md:min-w-[132px]', 'md:flex-none');
+    expect(sortCombobox.parentElement?.parentElement).toHaveClass('flex', 'w-full', 'items-center', 'md:w-auto');
 
-    // Toggle off, filter by Movie format -> only A Silent Voice remains
-    fireEvent.click(screen.getByRole('button', { name: /airing \/ behind/i }));
-    fireEvent.click(screen.getByRole('combobox', { name: 'Filter by format' }));
+    // Filter by Movie format -> only A Silent Voice remains
+    fireEvent.click(formatCombobox);
     fireEvent.click(screen.getByRole('option', { name: 'Movie' }));
     expect(screen.getByText('A Silent Voice')).toBeInTheDocument();
     expect(screen.queryByText('Blue Box')).not.toBeInTheDocument();
 
     // Reset format & sort by Title A-Z
-    fireEvent.click(screen.getByRole('combobox', { name: 'Filter by format' }));
+    fireEvent.click(formatCombobox);
     fireEvent.click(screen.getByRole('option', { name: 'All Formats' }));
-    fireEvent.click(screen.getByRole('combobox', { name: 'Sort list entries' }));
+    fireEvent.click(sortCombobox);
     fireEvent.click(screen.getByRole('option', { name: 'Title A–Z' }));
 
     const headings = screen.getAllByRole('heading', { level: 3 }).map((el) => el.textContent);
