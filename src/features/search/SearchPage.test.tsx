@@ -108,6 +108,11 @@ describe('SearchPage', () => {
 
     const dialog = await screen.findByRole('dialog', { name: /filter & sort/i });
     expect(dialog).toBeInTheDocument();
+    const scrollBody = dialog.querySelector('.overflow-y-auto');
+    const applyButton = screen.getByRole('button', { name: /apply filters/i });
+    expect(scrollBody).not.toBeNull();
+    expect(scrollBody?.contains(applyButton)).toBe(false);
+    expect(scrollBody?.parentElement).toHaveClass('max-h-[72vh]', 'md:max-h-[66vh]');
 
     // Adult genre/tag filtered out in safe mode
     expect(screen.queryByRole('button', { name: 'Hentai' })).not.toBeInTheDocument();

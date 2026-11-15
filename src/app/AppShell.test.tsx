@@ -3,6 +3,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { AppContent } from './App';
+import { useLogoutConfirmStore } from '@/features/auth/stores/useLogoutConfirmStore';
 import { createAppQueryClient } from '@/shared/api/queryClient';
 import { useAuthStore } from '@/shared/stores/useAuthStore';
 import { useToastStore } from '@/shared/stores/useToastStore';
@@ -23,6 +24,7 @@ describe('AppShell, AuthGuard & AuthCallback routes', () => {
     window.localStorage.clear();
     await useAuthStore.getState().logout();
     useAuthStore.setState({ isHydrated: true });
+    useLogoutConfirmStore.getState().closeLogoutConfirm();
     useToastStore.setState({ toasts: [], rateLimitUntil: null, isOffline: false });
     vi.stubGlobal(
       'fetch',
@@ -210,5 +212,46 @@ describe('AppShell, AuthGuard & AuthCallback routes', () => {
     expect(screen.getByRole('link', { name: 'Settings' })).toHaveAttribute('href', '/settings');
     expect(screen.getByRole('button', { name: /open profile for frierenuser/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Log out' })).toBeInTheDocument();
+  });
+
+  it('shows warning confirmation dialog before logging out from desktop navbar', async () => {
+    useAuthStore.setState({
+      accessToken: 'token-abc',
+      expiresAt: Date.now() + 60_000,
+      viewer: {
+        id: 1,
+        name: 'FrierenUser',
+        about: null,
+        avatar: null,
+        bannerImage: null,
+        siteUrl: null,
+        unreadNotificationCount: 0,
+        options: null,
+        mediaListOptions: null,
+        statistics: null,
+      },
+    });
+
+    renderWithRoute('/');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Log out' }));
+
+    const dialog = screen.getByRole('dialog', { name: /log out of anilist\?/i });
+    expect(dialog).toBeInTheDocument();
+    expect(dialog).toHaveTextContent('FrierenUser');
+    expect(useAuthStore.getState().accessToken).toBe('token-abc');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    expect(screen.queryByRole('dialog', { name: /log out of anilist\?/i })).not.toBeInTheDocument();
+    expect(useAuthStore.getState().accessToken).toBe('token-abc');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Log out' }));
+    fireEvent.click(screen.getByRole('button', { name: /confirm log out/i }));
+
+    await waitFor(() => {
+      expect(useAuthStore.getState().accessToken).toBeNull();
+    });
+    expect(screen.queryByRole('dialog', { name: /log out of anilist\?/i })).not.toBeInTheDocument();
+    expect(screen.getByText(/signed out of anilist\./i)).toBeInTheDocument();
   });
 });

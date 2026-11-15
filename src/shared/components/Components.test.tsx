@@ -1,6 +1,7 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { BottomSheetOrModal } from './BottomSheetOrModal';
+import { BrandLogo } from './BrandLogo';
 import { ErrorBoundary } from './ErrorBoundary';
 import { MediaCard } from './MediaCard';
 import { SelectDropdown } from './SelectDropdown';
@@ -160,5 +161,43 @@ describe('shared UI components', () => {
 
     expect(onChange).toHaveBeenCalledWith('POPULARITY_DESC');
     expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
+  });
+
+  it('pins BottomSheetOrModal footer outside the scrollable body and respects panelClassName', () => {
+    render(
+      <BottomSheetOrModal
+        open
+        onClose={vi.fn()}
+        title="Pinned Footer Modal"
+        panelClassName="max-h-[72vh] md:max-h-[66vh]"
+        footer={<button type="button">Pinned Action</button>}
+      >
+        <div>Scrollable Body</div>
+      </BottomSheetOrModal>,
+    );
+
+    const body = screen.getByText('Scrollable Body').parentElement;
+    const pinnedAction = screen.getByRole('button', { name: 'Pinned Action' });
+    const footerWrapper = pinnedAction.parentElement;
+    const panel = body?.parentElement;
+
+    expect(body).toHaveClass('overflow-y-auto');
+    expect(footerWrapper).toHaveClass('shrink-0');
+    expect(body?.contains(pinnedAction)).toBe(false);
+    expect(panel).toHaveClass('max-h-[72vh]', 'md:max-h-[66vh]');
+  });
+
+  it('renders BrandLogo Origami Fold SVG in brand and mono variants', () => {
+    const { rerender, container } = render(<BrandLogo title="Aiznima Logo" />);
+    const svg = screen.getByRole('img', { name: 'Aiznima Logo' });
+    const paths = svg.querySelectorAll('path');
+    expect(paths).toHaveLength(2);
+    expect(paths[0]).toHaveAttribute('fill', 'currentColor');
+    expect(paths[1]).toHaveAttribute('fill', 'var(--accent-primary)');
+
+    rerender(<BrandLogo variant="mono" />);
+    const decorativeSvg = container.querySelector('svg');
+    expect(decorativeSvg).toHaveAttribute('aria-hidden', 'true');
+    expect(decorativeSvg?.querySelectorAll('path')[1]).toHaveAttribute('fill', 'currentColor');
   });
 });

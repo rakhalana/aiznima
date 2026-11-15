@@ -16,7 +16,9 @@ import {
 } from 'lucide-react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { useLoginPromptStore } from '@/features/auth/stores/useLoginPromptStore';
+import { useLogoutConfirmStore } from '@/features/auth/stores/useLogoutConfirmStore';
 import { useUnreadNotificationCount } from '@/features/notifications/api/notificationQueries';
+import { BrandLogo } from '@/shared/components/BrandLogo';
 import { Button } from '@/shared/components/Button';
 import { useAuthStore } from '@/shared/stores/useAuthStore';
 import { usePrefsStore } from '@/shared/stores/usePrefsStore';
@@ -44,7 +46,6 @@ export function AppShell({ children }: AppShellProps) {
 
   const accessToken = useAuthStore((state) => state.accessToken);
   const viewer = useAuthStore((state) => state.viewer);
-  const logout = useAuthStore((state) => state.logout);
   const sessionExpiredFlag = useAuthStore((state) => state.sessionExpiredFlag);
   const clearSessionExpiredFlag = useAuthStore((state) => state.clearSessionExpiredFlag);
 
@@ -52,6 +53,7 @@ export function AppShell({ children }: AppShellProps) {
   const rateLimitUntil = useToastStore((state) => state.rateLimitUntil);
 
   const openLoginPrompt = useLoginPromptStore((state) => state.openLoginPrompt);
+  const openLogoutConfirm = useLogoutConfirmStore((state) => state.openLogoutConfirm);
 
   const isLoggedIn = Boolean(accessToken);
   const showMobileHeader =
@@ -77,9 +79,7 @@ export function AppShell({ children }: AppShellProps) {
             onClick={() => navigate('/')}
             className="flex shrink-0 items-center gap-2.5 rounded-xl px-1.5 py-1 text-left transition-crisp hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40"
           >
-            <span className="inline-flex h-8 w-8 items-center justify-center rounded-xl bg-[var(--accent-primary)] text-sm font-bold text-white shadow-token-xs">
-              A
-            </span>
+            <BrandLogo className="h-7 w-7 shrink-0 text-[var(--text-primary)]" />
             <span className="text-[15px] font-bold tracking-tight">Aiznima</span>
           </button>
 
@@ -217,7 +217,7 @@ export function AppShell({ children }: AppShellProps) {
                 </button>
                 <button
                   type="button"
-                  onClick={() => void logout()}
+                  onClick={openLogoutConfirm}
                   aria-label="Log out"
                   title="Log out"
                   className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-[var(--text-muted)] hover:bg-[var(--bg-subtle)] hover:text-[var(--error-text)] transition-crisp focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40"
@@ -261,9 +261,7 @@ export function AppShell({ children }: AppShellProps) {
               onClick={() => navigate('/')}
               className="flex items-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 rounded-lg"
             >
-              <span className="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-[var(--accent-primary)] text-xs font-bold text-white shadow-token-xs">
-                A
-              </span>
+              <BrandLogo className="h-6 w-6 shrink-0 text-[var(--text-primary)]" />
               <span className="text-base font-bold tracking-tight">Aiznima</span>
             </button>
 

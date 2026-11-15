@@ -111,7 +111,36 @@ export function FilterSheet({
     list.includes(value) ? list.filter((item) => item !== value) : [...list, value];
 
   return (
-    <BottomSheetOrModal open={open} onClose={onClose} title="Filter & Sort">
+    <BottomSheetOrModal
+      open={open}
+      onClose={onClose}
+      title="Filter & Sort"
+      panelClassName="max-h-[72vh] md:max-h-[66vh]"
+      footer={
+        <div className="flex items-center justify-between gap-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              onReset();
+              onClose();
+            }}
+          >
+            Reset All
+          </Button>
+          <Button
+            variant="primary"
+            size="sm"
+            onClick={() => {
+              onApply(draft);
+              onClose();
+            }}
+          >
+            Apply Filters
+          </Button>
+        </div>
+      }
+    >
       <div className="space-y-4">
         {/* Media (Anime / Manga) Filters */}
         {isMedia ? (
@@ -376,29 +405,6 @@ export function FilterSheet({
             </label>
           </div>
         ) : null}
-
-        <div className="flex items-center justify-between gap-2 border-t border-[var(--border-hairline)] pt-3">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => {
-              onReset();
-              onClose();
-            }}
-          >
-            Reset All
-          </Button>
-          <Button
-            variant="primary"
-            size="sm"
-            onClick={() => {
-              onApply(draft);
-              onClose();
-            }}
-          >
-            Apply Filters
-          </Button>
-        </div>
       </div>
     </BottomSheetOrModal>
   );

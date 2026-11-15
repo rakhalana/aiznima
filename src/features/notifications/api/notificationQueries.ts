@@ -1,4 +1,4 @@
-import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import { anilistRequest } from '@/shared/api/graphqlClient';
 import type { AppNotification, NotificationType, PageInfo } from '@/shared/api/types';
 import { useAuthStore } from '@/shared/stores/useAuthStore';
@@ -418,29 +418,5 @@ export function useNotificationsInfiniteQuery(types?: NotificationType[]) {
         : undefined,
     enabled: Boolean(isHydrated && accessToken),
     staleTime: 60 * 1000,
-  });
-}
-
-export function useMarkNotificationsReadMutation() {
-  const queryClient = useQueryClient();
-  const accessToken = useAuthStore((state) => state.accessToken);
-  const viewer = useAuthStore((state) => state.viewer);
-  const setViewer = useAuthStore((state) => state.setViewer);
-
-  return useMutation({
-    mutationFn: () =>
-      anilistRequest<NotificationsPageResponse>(NOTIFICATIONS_QUERY, {
-        page: 1,
-        perPage: 1,
-        resetNotificationCount: true,
-      }),
-    onSuccess() {
-      queryClient.setQueryData(['unread-notifications', accessToken], 0);
-      if (viewer) {
-        setViewer({ ...viewer, unreadNotificationCount: 0 });
-      }
-      void queryClient.invalidateQueries({ queryKey: ['viewer'] });
-      void queryClient.invalidateQueries({ queryKey: ['unread-notifications'] });
-    },
   });
 }

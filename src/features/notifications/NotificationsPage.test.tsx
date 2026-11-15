@@ -75,7 +75,6 @@ describe('NotificationsPage', () => {
     });
 
     const nowSec = Math.floor(Date.now() / 1000);
-    let unreadCount = 2;
 
     const allNotifications = [
       {
@@ -117,27 +116,12 @@ describe('NotificationsPage', () => {
     const fetchMock = vi.fn().mockImplementation(async (_url, init) => {
       const body = JSON.parse(String(init?.body ?? '{}')) as {
         query?: string;
-        variables?: { types?: string[]; resetNotificationCount?: boolean };
+        variables?: { types?: string[] };
       };
 
       if (body.query?.includes('UnreadNotificationCount')) {
         return new Response(
-          JSON.stringify({ data: { Viewer: { id: 1, unreadNotificationCount: unreadCount } } }),
-          { status: 200, headers: { 'Content-Type': 'application/json' } },
-        );
-      }
-
-      if (body.variables?.resetNotificationCount) {
-        unreadCount = 0;
-        return new Response(
-          JSON.stringify({
-            data: {
-              Page: {
-                pageInfo: { total: 1, perPage: 1, currentPage: 1, lastPage: 1, hasNextPage: false },
-                notifications: [],
-              },
-            },
-          }),
+          JSON.stringify({ data: { Viewer: { id: 1, unreadNotificationCount: 2 } } }),
           { status: 200, headers: { 'Content-Type': 'application/json' } },
         );
       }

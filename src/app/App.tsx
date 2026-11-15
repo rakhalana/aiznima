@@ -3,8 +3,10 @@ import { QueryClientProvider } from '@tanstack/react-query';
 import { BrowserRouter, useLocation, useNavigate } from 'react-router-dom';
 import { useViewerQuery } from '@/features/auth/api/viewerQuery';
 import { LoginPromptModal } from '@/features/auth/components/LoginPromptModal';
+import { LogoutConfirmModal } from '@/features/auth/components/LogoutConfirmModal';
 import { completeOAuthLogin, startAniListLogin } from '@/features/auth/services/oauth';
 import { useLoginPromptStore } from '@/features/auth/stores/useLoginPromptStore';
+import { useLogoutConfirmStore } from '@/features/auth/stores/useLogoutConfirmStore';
 import { registerNativeLifecycle } from '@/platform';
 import { queryClient } from '@/shared/api/queryClient';
 import { ErrorBoundary } from '@/shared/components/ErrorBoundary';
@@ -85,6 +87,11 @@ function AppRuntimeEffects() {
         });
       },
       onBackButton: () => {
+        const logoutModal = useLogoutConfirmStore.getState();
+        if (logoutModal.isOpen) {
+          logoutModal.closeLogoutConfirm();
+          return true;
+        }
         const loginModal = useLoginPromptStore.getState();
         if (loginModal.isOpen) {
           loginModal.closeLoginPrompt();
@@ -106,6 +113,7 @@ export function AppContent() {
         <AppRoutes />
       </AppShell>
       <LoginPromptModal />
+      <LogoutConfirmModal />
       <ToastViewport />
     </>
   );

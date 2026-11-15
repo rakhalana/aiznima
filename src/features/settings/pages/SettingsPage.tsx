@@ -1,7 +1,9 @@
 import { ArrowLeft, LogIn, Moon, ShieldAlert, Sun, Trash2, User } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useLoginPromptStore } from '@/features/auth/stores/useLoginPromptStore';
+import { useLogoutConfirmStore } from '@/features/auth/stores/useLogoutConfirmStore';
 import { queryClient } from '@/shared/api/queryClient';
+import { BrandLogo } from '@/shared/components/BrandLogo';
 import { Button } from '@/shared/components/Button';
 import { useAuthStore } from '@/shared/stores/useAuthStore';
 import { usePrefsStore } from '@/shared/stores/usePrefsStore';
@@ -17,8 +19,8 @@ export function SettingsPage() {
 
   const accessToken = useAuthStore((state) => state.accessToken);
   const viewer = useAuthStore((state) => state.viewer);
-  const logout = useAuthStore((state) => state.logout);
   const openLoginPrompt = useLoginPromptStore((state) => state.openLoginPrompt);
+  const openLogoutConfirm = useLogoutConfirmStore((state) => state.openLogoutConfirm);
   const addToast = useToastStore((state) => state.addToast);
 
   const handleClearCache = () => {
@@ -146,7 +148,7 @@ export function SettingsPage() {
             <Button variant="secondary" size="sm" onClick={() => navigate('/profile')}>
               Profile
             </Button>
-            <Button variant="danger" size="sm" onClick={() => void logout()}>
+            <Button variant="danger" size="sm" onClick={openLogoutConfirm}>
               Log out
             </Button>
           </div>
@@ -168,7 +170,10 @@ export function SettingsPage() {
       </div>
 
       <footer className="rounded-xl border border-[var(--border-hairline)] bg-[var(--bg-surface)] p-4 text-xs text-[var(--text-secondary)] shadow-token-xs">
-        <p className="font-semibold text-[var(--text-primary)]">Aiznima</p>
+        <div className="flex items-center gap-2">
+          <BrandLogo className="h-5 w-5 shrink-0 text-[var(--text-primary)]" />
+          <p className="font-semibold text-[var(--text-primary)]">Aiznima</p>
+        </div>
         <p className="mt-1">Unofficial client powered by AniList API.</p>
       </footer>
     </section>
