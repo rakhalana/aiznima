@@ -28,6 +28,35 @@ interface AppShellProps {
   children: ReactNode;
 }
 
+function ThemeToggleIcon({
+  theme,
+  sizeClass = 'h-4 w-4',
+}: {
+  theme: 'light' | 'dark';
+  sizeClass?: string;
+}) {
+  const isDark = theme === 'dark';
+  return (
+    <span
+      aria-hidden="true"
+      className={`relative inline-flex items-center justify-center ${sizeClass}`}
+    >
+      <Sun
+        className={`theme-switch-icon absolute inset-0 h-full w-full ${
+          isDark ? 'rotate-0 scale-100 opacity-100' : '-rotate-90 scale-50 opacity-0'
+        }`}
+        strokeWidth={1.75}
+      />
+      <Moon
+        className={`theme-switch-icon absolute inset-0 h-full w-full ${
+          isDark ? 'rotate-90 scale-50 opacity-0' : 'rotate-0 scale-100 opacity-100'
+        }`}
+        strokeWidth={1.75}
+      />
+    </span>
+  );
+}
+
 const NAV_ITEMS = [
   { to: '/', label: 'Discover', icon: Compass, end: true },
   { to: '/search', label: 'Search', icon: Search, end: false },
@@ -180,11 +209,7 @@ export function AppShell({ children }: AppShellProps) {
               title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
               className="inline-flex h-9 w-9 items-center justify-center rounded-xl text-[var(--text-secondary)] hover:bg-[var(--bg-subtle)]/80 hover:text-[var(--text-primary)] dark:hover:bg-white/[0.08] transition-crisp focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40"
             >
-              {theme === 'dark' ? (
-                <Sun className="h-4 w-4" strokeWidth={1.75} />
-              ) : (
-                <Moon className="h-4 w-4" strokeWidth={1.75} />
-              )}
+              <ThemeToggleIcon theme={theme} sizeClass="h-4 w-4" />
             </button>
 
             <div
@@ -284,13 +309,9 @@ export function AppShell({ children }: AppShellProps) {
                 type="button"
                 onClick={() => void toggleTheme()}
                 aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
-                className="inline-flex h-10 w-10 items-center justify-center rounded-lg text-[var(--text-secondary)] hover:bg-[var(--bg-subtle)]"
+                className="inline-flex h-10 w-10 items-center justify-center rounded-lg text-[var(--text-secondary)] hover:bg-[var(--bg-subtle)] transition-crisp"
               >
-                {theme === 'dark' ? (
-                  <Sun className="h-[18px] w-[18px]" strokeWidth={1.75} />
-                ) : (
-                  <Moon className="h-[18px] w-[18px]" strokeWidth={1.75} />
-                )}
+                <ThemeToggleIcon theme={theme} sizeClass="h-[18px] w-[18px]" />
               </button>
               <button
                 type="button"

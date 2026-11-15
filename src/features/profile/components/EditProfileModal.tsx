@@ -5,14 +5,9 @@ import { useLoginPromptStore } from '@/features/auth/stores/useLoginPromptStore'
 import { useUpdateUserMutation } from '@/features/profile/api/profileQueries';
 import { openExternalUrl } from '@/platform';
 import { UnauthorizedError } from '@/shared/api/graphqlClient';
-import type {
-  ScoreFormat,
-  UserProfile,
-  UserTitleLanguage,
-} from '@/shared/api/types';
+import type { UserProfile } from '@/shared/api/types';
 import { BottomSheetOrModal } from '@/shared/components/BottomSheetOrModal';
 import { Button } from '@/shared/components/Button';
-import { SelectDropdown } from '@/shared/components/SelectDropdown';
 import { useToastStore } from '@/shared/stores/useToastStore';
 
 interface EditProfileModalProps {
@@ -31,23 +26,6 @@ const PROFILE_COLORS = [
   { id: 'gray', label: 'Slate', swatch: 'bg-slate-600' },
 ] as const;
 
-const TITLE_LANGUAGES: Array<{ value: UserTitleLanguage; label: string }> = [
-  { value: 'ROMAJI', label: 'Romaji (Sousou no Frieren)' },
-  { value: 'ENGLISH', label: 'English (Frieren: Beyond Journey’s End)' },
-  { value: 'NATIVE', label: 'Native (葬送のフリーレン)' },
-  { value: 'ROMAJI_STYLISED', label: 'Romaji Stylised' },
-  { value: 'ENGLISH_STYLISED', label: 'English Stylised' },
-  { value: 'NATIVE_STYLISED', label: 'Native Stylised' },
-];
-
-const SCORE_FORMATS: Array<{ value: ScoreFormat; label: string }> = [
-  { value: 'POINT_100', label: '100 Point (85 / 100)' },
-  { value: 'POINT_10_DECIMAL', label: '10 Point Decimal (8.5 / 10)' },
-  { value: 'POINT_10', label: '10 Point (9 / 10)' },
-  { value: 'POINT_5', label: '5 Star (4 / 5)' },
-  { value: 'POINT_3', label: '3 Point Smiley (1 – 3)' },
-];
-
 function stripSimpleHtmlForDraft(html: string | null | undefined): string {
   if (!html) return '';
   return html
@@ -65,22 +43,12 @@ export function EditProfileModal({ open, onClose, viewer }: EditProfileModalProp
 
   const [about, setAbout] = useState('');
   const [profileColor, setProfileColor] = useState('blue');
-  const [titleLanguage, setTitleLanguage] = useState<UserTitleLanguage>('ROMAJI');
-  const [scoreFormat, setScoreFormat] = useState<ScoreFormat>('POINT_100');
-  const [displayAdultContent, setDisplayAdultContent] = useState(false);
-  const [includeAdultContentInSearch, setIncludeAdultContentInSearch] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!open) return;
     setAbout(stripSimpleHtmlForDraft(viewer.about));
     setProfileColor(viewer.options?.profileColor ?? 'blue');
-    setTitleLanguage(viewer.options?.titleLanguage ?? 'ROMAJI');
-    setScoreFormat(viewer.mediaListOptions?.scoreFormat ?? 'POINT_100');
-    setDisplayAdultContent(Boolean(viewer.options?.displayAdultContent));
-    setIncludeAdultContentInSearch(
-      Boolean(viewer.options?.includeAdultContentInSearch),
-    );
     setAuthError(null);
     // Only hydrate draft when opening the modal (AF-02 preserves draft across 401/background updates).
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -94,12 +62,8 @@ export function EditProfileModal({ open, onClose, viewer }: EditProfileModalProp
       await updateUser.mutateAsync({
         about,
         profileColor,
-        titleLanguage,
-        scoreFormat,
-        displayAdultContent,
-        includeAdultContentInSearch,
       });
-      addToast({ variant: 'success', message: 'Profile preferences updated.' });
+      addToast({ variant: 'success', message: 'Profile updated.' });
       onClose();
     } catch (err) {
       if (err instanceof UnauthorizedError) {
@@ -114,7 +78,7 @@ export function EditProfileModal({ open, onClose, viewer }: EditProfileModalProp
     <BottomSheetOrModal
       open={open}
       onClose={onClose}
-      title="Edit Profile & Preferences"
+      title="Edit Profile"
     >
       <form onSubmit={(e) => void handleSubmit(e)} className="space-y-4">
         {authError ? (
@@ -176,43 +140,6 @@ export function EditProfileModal({ open, onClose, viewer }: EditProfileModalProp
               );
             })}
           </div>
-        </div>
-
-        <div className="grid grid-cols-2 gap-2.5 sm:gap-3">
-          <SelectDropdown
-            label="Title Language"
-            value={titleLanguage}
-            options={TITLE_LANGUAGES}
-            onChange={(nextLanguage) => setTitleLanguage(nextLanguage)}
-          />
-
-          <SelectDropdown
-            label="Score Format"
-            value={scoreFormat}
-            options={SCORE_FORMATS}
-            onChange={(nextFormat) => setScoreFormat(nextFormat)}
-          />
-        </div>
-
-        <div className="space-y-2 rounded-xl border border-[var(--border-hairline)] bg-[var(--bg-subtle)] p-3">
-          <label className="flex items-center gap-2.5 text-xs font-medium text-[var(--text-primary)]">
-            <input
-              type="checkbox"
-              checked={displayAdultContent}
-              onChange={(e) => setDisplayAdultContent(e.target.checked)}
-              className="h-4 w-4 accent-[var(--accent-primary)]"
-            />
-            <span>Display 18+ (Adult) content on AniList</span>
-          </label>
-          <label className="flex items-center gap-2.5 text-xs font-medium text-[var(--text-primary)]">
-            <input
-              type="checkbox"
-              checked={includeAdultContentInSearch}
-              onChange={(e) => setIncludeAdultContentInSearch(e.target.checked)}
-              className="h-4 w-4 accent-[var(--accent-primary)]"
-            />
-            <span>Include 18+ entries in Search results</span>
-          </label>
         </div>
 
         <div className="flex flex-wrap items-center justify-between gap-2 border-t border-[var(--border-hairline)] pt-3">

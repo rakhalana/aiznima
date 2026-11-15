@@ -1,16 +1,11 @@
 import { useMemo, useState } from 'react';
 import {
-  Award,
   BookOpen,
   Calendar,
   Compass,
   Film,
   Layers,
-  Mic,
-  Repeat,
   Sparkles,
-  Tag as TagIcon,
-  TrendingUp,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { usePersonalizedTaste } from '@/features/taste/hooks/usePersonalizedTaste';
@@ -100,9 +95,8 @@ function InteractiveMetricBar({
           </span>
           {badge ? (
             <span
-              className={`shrink-0 rounded px-1.5 py-0.5 text-[10px] font-semibold border ${
-                badgeClassName ?? MATRIX_BADGE_CLASSES.Standard
-              }`}
+              className={`shrink-0 rounded px-1.5 py-0.5 text-[10px] font-semibold border ${badgeClassName ?? MATRIX_BADGE_CLASSES.Standard
+                }`}
             >
               {badge}
             </span>
@@ -176,7 +170,6 @@ function GenreMatrixCard({
     <section className="rounded-xl border border-[var(--border-hairline)] bg-[var(--bg-surface)] p-3.5 shadow-token-xs sm:p-4">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-2">
-          <TrendingUp className="h-4 w-4 text-[var(--accent-primary)]" strokeWidth={1.75} />
           <div>
             <h3 className="text-sm font-semibold text-[var(--text-primary)]">
               Genre Matrix (Quantity vs Quality)
@@ -199,11 +192,10 @@ function GenreMatrixCard({
               role="tab"
               aria-selected={sortBy === mode}
               onClick={() => setSortBy(mode)}
-              className={`rounded-md px-2.5 py-1 text-[11px] font-semibold transition-crisp ${
-                sortBy === mode
-                  ? 'bg-[var(--bg-surface)] text-[var(--text-primary)] shadow-token-xs'
-                  : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
-              }`}
+              className={`rounded-md px-2.5 py-1 text-[11px] font-semibold transition-crisp ${sortBy === mode
+                ? 'bg-[var(--bg-surface)] text-[var(--text-primary)] shadow-token-xs'
+                : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
+                }`}
             >
               {mode === 'VOLUME' ? 'Most Watched' : 'Top Rated'}
             </button>
@@ -225,9 +217,8 @@ function GenreMatrixCard({
             onClick={() =>
               onOpenDrillDown({
                 title: `${row.genre} (${row.count})`,
-                subtitle: `${row.meanScore ? `Mean ${Math.round(row.meanScore)}% · ` : ''}${
-                  row.matrixTag !== 'Standard' ? row.matrixTag : 'Genre breakdown'
-                }`,
+                subtitle: `${row.meanScore ? `Mean ${Math.round(row.meanScore)}% · ` : ''}${row.matrixTag !== 'Standard' ? row.matrixTag : 'Genre breakdown'
+                  }`,
                 mediaIds: row.mediaIds,
               })
             }
@@ -329,11 +320,10 @@ export function ProfileDeepStatsPanel({
                 role="tab"
                 aria-selected={active}
                 onClick={() => setMediaType(type)}
-                className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1 text-xs font-semibold transition-crisp ${
-                  active
-                    ? 'bg-[var(--bg-surface)] text-[var(--text-primary)] shadow-token-xs'
-                    : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
-                }`}
+                className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1 text-xs font-semibold transition-crisp ${active
+                  ? 'bg-[var(--bg-surface)] text-[var(--text-primary)] shadow-token-xs'
+                  : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
+                  }`}
               >
                 {type === 'ANIME' ? (
                   <Film className="h-3.5 w-3.5" strokeWidth={1.75} aria-hidden="true" />
@@ -389,9 +379,8 @@ export function ProfileDeepStatsPanel({
           </p>
           <p className="text-[11px] text-[var(--text-muted)]">
             {profile.topSource
-              ? `${profile.topSource.count} titles · ${
-                  profile.topSource.meanScore ? `${Math.round(profile.topSource.meanScore)}%` : 'no score'
-                }`
+              ? `${profile.topSource.count} titles · ${profile.topSource.meanScore ? `${Math.round(profile.topSource.meanScore)}%` : 'no score'
+              }`
               : 'Syncing list'}
           </p>
         </div>
@@ -562,7 +551,6 @@ export function ProfileDeepStatsPanel({
         {creators.length > 0 ? (
           <section className="rounded-xl border border-[var(--border-hairline)] bg-[var(--bg-surface)] p-3.5 shadow-token-xs sm:p-4">
             <div className="mb-2 flex items-center gap-2">
-              <Award className="h-4 w-4 text-[var(--accent-primary)]" strokeWidth={1.75} />
               <h3 className="text-sm font-semibold text-[var(--text-primary)]">
                 {mediaType === 'ANIME' ? 'Studio Loyalty' : 'Staff & Creator Loyalty'}
               </h3>
@@ -597,7 +585,6 @@ export function ProfileDeepStatsPanel({
         {profile.tags.length > 0 ? (
           <section className="rounded-xl border border-[var(--border-hairline)] bg-[var(--bg-surface)] p-3.5 shadow-token-xs sm:p-4">
             <div className="mb-2 flex items-center gap-2">
-              <TagIcon className="h-4 w-4 text-[var(--accent-primary)]" strokeWidth={1.75} />
               <h3 className="text-sm font-semibold text-[var(--text-primary)]">
                 Top Theme &amp; Setting Tags
               </h3>
@@ -626,7 +613,6 @@ export function ProfileDeepStatsPanel({
         {profile.releaseYears.length > 0 ? (
           <section className="rounded-xl border border-[var(--border-hairline)] bg-[var(--bg-surface)] p-3.5 shadow-token-xs sm:p-4">
             <div className="mb-2 flex items-center gap-2">
-              <Calendar className="h-4 w-4 text-[var(--accent-primary)]" strokeWidth={1.75} />
               <h3 className="text-sm font-semibold text-[var(--text-primary)]">
                 Release Years (Era Curve)
               </h3>
@@ -659,7 +645,6 @@ export function ProfileDeepStatsPanel({
         {topVAs.length > 0 ? (
           <section className="rounded-xl border border-[var(--border-hairline)] bg-[var(--bg-surface)] p-3.5 shadow-token-xs sm:p-4">
             <div className="mb-2 flex items-center gap-2">
-              <Mic className="h-4 w-4 text-[var(--accent-primary)]" strokeWidth={1.75} />
               <h3 className="text-sm font-semibold text-[var(--text-primary)]">
                 Top Voice Actors
               </h3>
@@ -709,7 +694,6 @@ export function ProfileDeepStatsPanel({
               <div>
                 <div className="mb-2 flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2">
-                    <Repeat className="h-4 w-4 text-[var(--accent-primary)]" strokeWidth={1.75} />
                     <h3 className="text-sm font-semibold text-[var(--text-primary)]">
                       {mediaType === 'MANGA' ? 'Reread Value' : 'Rewatch Value'}
                     </h3>

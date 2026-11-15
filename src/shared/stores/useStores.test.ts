@@ -1,11 +1,11 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { useAuthStore } from './useAuthStore';
 import { usePrefsStore } from './usePrefsStore';
 
 describe('core Zustand stores', () => {
   beforeEach(async () => {
     window.localStorage.clear();
-    document.documentElement.classList.remove('dark');
+    document.documentElement.classList.remove('dark', 'theme-transition');
     await useAuthStore.getState().logout();
     usePrefsStore.setState({
       theme: 'light',
@@ -17,18 +17,63 @@ describe('core Zustand stores', () => {
     });
   });
 
-  it('defaults to Paper Slate Light mode and toggles Dark mode on DOM', async () => {
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.unstubAllGlobals();
+  });
+
+  it('defaults to Paper Slate Light mode, animates theme-transition on toggle, and clears after settling', async () => {
+    vi.useFakeTimers();
+
     await usePrefsStore.getState().hydrate();
     expect(usePrefsStore.getState().theme).toBe('light');
     expect(document.documentElement.classList.contains('dark')).toBe(false);
+    expect(document.documentElement.classList.contains('theme-transition')).toBe(false);
 
     await usePrefsStore.getState().toggleTheme();
     expect(usePrefsStore.getState().theme).toBe('dark');
     expect(document.documentElement.classList.contains('dark')).toBe(true);
+    expect(document.documentElement.classList.contains('theme-transition')).toBe(true);
 
+    // Repeating same theme does not restart transition once settled
+    vi.advanceTimersByTime(350);
+    expect(document.documentElement.classList.contains('theme-transition')).toBe(false);
+    await usePrefsStore.getState().setTheme('dark');
+    expect(document.documentElement.classList.contains('theme-transition')).toBe(false);
+
+    // Rapid consecutive toggles keep transition alive until 320ms after the latest toggle
     await usePrefsStore.getState().toggleTheme();
     expect(usePrefsStore.getState().theme).toBe('light');
     expect(document.documentElement.classList.contains('dark')).toBe(false);
+    expect(document.documentElement.classList.contains('theme-transition')).toBe(true);
+
+    vi.advanceTimersByTime(200);
+    await usePrefsStore.getState().toggleTheme();
+    expect(usePrefsStore.getState().theme).toBe('dark');
+    vi.advanceTimersByTime(200);
+    expect(document.documentElement.classList.contains('theme-transition')).toBe(true);
+
+    vi.advanceTimersByTime(150);
+    expect(document.documentElement.classList.contains('theme-transition')).toBe(false);
+  });
+
+  it('skips theme-transition class when prefers-reduced-motion is enabled', async () => {
+    vi.stubGlobal(
+      'matchMedia',
+      vi.fn().mockImplementation((query: string) => ({
+        matches: query === '(prefers-reduced-motion: reduce)',
+        media: query,
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+      })),
+    );
+
+    await usePrefsStore.getState().hydrate();
+    await usePrefsStore.getState().toggleTheme();
+
+    expect(usePrefsStore.getState().theme).toBe('dark');
+    expect(document.documentElement.classList.contains('dark')).toBe(true);
+    expect(document.documentElement.classList.contains('theme-transition')).toBe(false);
   });
 
   it('persists searchViewMode and listViewMode across store rehydration', async () => {

@@ -5,13 +5,13 @@ import {
 } from '@/features/search/api/searchQueries';
 import { extractAvailableTagCategories } from '@/features/search/utils/searchHelpers';
 import type {
-  CharacterSort,
   MediaFormat,
   MediaSeason,
   MediaSort,
   MediaStatus,
-  StaffSort,
-  StudioSort,
+  SearchCharacterSort,
+  SearchStaffSort,
+  SearchStudioSort,
   UserSort,
 } from '@/shared/api/types';
 import { BottomSheetOrModal } from '@/shared/components/BottomSheetOrModal';
@@ -47,18 +47,20 @@ const MEDIA_SORTS: Array<{ value: MediaSort; label: string }> = [
   { value: 'FAVOURITES_DESC', label: 'Most Favourited' },
 ];
 
-const CHARACTER_STAFF_SORTS: Array<{ value: CharacterSort & StaffSort; label: string }> = [
+const CHARACTER_STAFF_SORTS: Array<{ value: SearchCharacterSort & SearchStaffSort; label: string }> = [
   { value: 'FAVOURITES_DESC', label: 'Most Favourited' },
   { value: 'FAVOURITES', label: 'Least Favourited' },
   { value: 'SEARCH_MATCH', label: 'Relevance' },
+  { value: 'TASTE_MATCH', label: 'Taste Match' },
   { value: 'ID_DESC', label: 'Newest Added' },
 ];
 
-const STUDIO_SORTS: Array<{ value: StudioSort; label: string }> = [
+const STUDIO_SORTS: Array<{ value: SearchStudioSort; label: string }> = [
   { value: 'FAVOURITES_DESC', label: 'Most Favourited' },
   { value: 'NAME', label: 'Name (A – Z)' },
   { value: 'NAME_DESC', label: 'Name (Z – A)' },
   { value: 'SEARCH_MATCH', label: 'Relevance' },
+  { value: 'TASTE_MATCH', label: 'Taste Match' },
   { value: 'ID_DESC', label: 'Newest Added' },
 ];
 
@@ -303,18 +305,28 @@ export function FilterSheet({
         {/* Character / Staff Filters */}
         {draft.type === 'CHARACTER' || draft.type === 'STAFF' ? (
           <div className="space-y-3">
-            <SelectDropdown
-              label="Sort By"
-              value={draft.type === 'CHARACTER' ? draft.characterSort : draft.staffSort}
-              options={CHARACTER_STAFF_SORTS}
-              onChange={(nextSort) => {
-                setDraft((prev) =>
-                  prev.type === 'CHARACTER'
-                    ? { ...prev, characterSort: nextSort as CharacterSort }
-                    : { ...prev, staffSort: nextSort as StaffSort },
-                );
-              }}
-            />
+            <div className="space-y-1.5">
+              <SelectDropdown
+                label="Sort By"
+                value={draft.type === 'CHARACTER' ? draft.characterSort : draft.staffSort}
+                options={CHARACTER_STAFF_SORTS}
+                onChange={(nextSort) => {
+                  setDraft((prev) =>
+                    prev.type === 'CHARACTER'
+                      ? { ...prev, characterSort: nextSort as SearchCharacterSort }
+                      : { ...prev, staffSort: nextSort as SearchStaffSort },
+                  );
+                }}
+              />
+              {(draft.type === 'CHARACTER' ? draft.characterSort : draft.staffSort) ===
+              'TASTE_MATCH' ? (
+                <p className="text-[11px] text-[var(--text-muted)]">
+                  {draft.type === 'CHARACTER'
+                    ? 'Orders MAIN characters by your AniList Taste DNA.'
+                    : 'Orders staff & voice actors by your AniList Taste DNA.'}
+                </p>
+              ) : null}
+            </div>
 
             <label className="flex items-center justify-between gap-3 rounded-xl border border-[var(--border-hairline)] bg-[var(--bg-canvas)] p-3 text-xs font-semibold text-[var(--text-primary)]">
               <div>
@@ -341,14 +353,21 @@ export function FilterSheet({
         {/* Studios Filters */}
         {draft.type === 'STUDIO' ? (
           <div className="space-y-3">
-            <SelectDropdown
-              label="Sort By"
-              value={draft.studioSort}
-              options={STUDIO_SORTS}
-              onChange={(nextSort) =>
-                setDraft((prev) => ({ ...prev, studioSort: nextSort as StudioSort }))
-              }
-            />
+            <div className="space-y-1.5">
+              <SelectDropdown
+                label="Sort By"
+                value={draft.studioSort}
+                options={STUDIO_SORTS}
+                onChange={(nextSort) =>
+                  setDraft((prev) => ({ ...prev, studioSort: nextSort as SearchStudioSort }))
+                }
+              />
+              {draft.studioSort === 'TASTE_MATCH' ? (
+                <p className="text-[11px] text-[var(--text-muted)]">
+                  Orders studios by your AniList Taste DNA.
+                </p>
+              ) : null}
+            </div>
 
             <label className="flex items-center justify-between gap-3 rounded-xl border border-[var(--border-hairline)] bg-[var(--bg-canvas)] p-3 text-xs font-semibold text-[var(--text-primary)]">
               <div>

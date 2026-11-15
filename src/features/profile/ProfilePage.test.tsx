@@ -92,7 +92,7 @@ describe('ProfilePage', () => {
     expect(screen.getByTestId('search-route')).toHaveTextContent('/search?type=USER');
   });
 
-  it('renders authenticated viewer stats and submits EditProfileModal UpdateUser mutation', async () => {
+  it('renders authenticated viewer stats and submits EditProfileModal UpdateUser mutation without account preferences', async () => {
     const viewer = makeUser({ name: 'RakhaViewer' });
     useAuthStore.setState({
       accessToken: 'token-123',
@@ -100,28 +100,26 @@ describe('ProfilePage', () => {
       viewer,
     });
 
-    vi.stubGlobal(
-      'fetch',
-      vi.fn().mockResolvedValue(
-        new Response(
-          JSON.stringify({
-            data: {
-              UpdateUser: makeUser({
-                name: 'RakhaViewer',
-                about: '<p>Updated bio</p>',
-                options: {
-                  titleLanguage: 'ENGLISH',
-                  displayAdultContent: false,
-                  includeAdultContentInSearch: false,
-                  profileColor: 'purple',
-                },
-              }),
-            },
-          }),
-          { status: 200, headers: { 'Content-Type': 'application/json' } },
-        ),
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          data: {
+            UpdateUser: makeUser({
+              name: 'RakhaViewer',
+              about: '<p>Updated bio</p>',
+              options: {
+                titleLanguage: 'ROMAJI',
+                displayAdultContent: false,
+                includeAdultContentInSearch: false,
+                profileColor: 'purple',
+              },
+            }),
+          },
+        }),
+        { status: 200, headers: { 'Content-Type': 'application/json' } },
       ),
     );
+    vi.stubGlobal('fetch', fetchMock);
 
     renderProfileRoute('/profile');
 
@@ -132,8 +130,14 @@ describe('ProfilePage', () => {
     fireEvent.click(screen.getByRole('button', { name: /edit profile/i }));
 
     expect(
-      screen.getByRole('dialog', { name: /edit profile & preferences/i }),
+      screen.getByRole('dialog', { name: /^edit profile$/i }),
     ).toBeInTheDocument();
+    expect(screen.queryByRole('combobox', { name: /title language/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('combobox', { name: /score format/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('checkbox', { name: /display 18\+/i })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('checkbox', { name: /include 18\+ entries in search/i }),
+    ).not.toBeInTheDocument();
 
     fireEvent.change(screen.getByPlaceholderText(/write a short bio/i), {
       target: { value: 'Updated bio' },
@@ -142,10 +146,21 @@ describe('ProfilePage', () => {
 
     await waitFor(() => {
       expect(
-        screen.queryByRole('dialog', { name: /edit profile & preferences/i }),
+        screen.queryByRole('dialog', { name: /^edit profile$/i }),
       ).not.toBeInTheDocument();
     });
-    expect(useAuthStore.getState().viewer?.options?.titleLanguage).toBe('ENGLISH');
+
+    const requestInit = fetchMock.mock.calls[0]?.[1] as RequestInit | undefined;
+    const body = JSON.parse(String(requestInit?.body)) as {
+      variables: Record<string, unknown>;
+    };
+    expect(body.variables).toMatchObject({ about: 'Updated bio' });
+    expect(body.variables).toHaveProperty('profileColor');
+    expect(body.variables).not.toHaveProperty('titleLanguage');
+    expect(body.variables).not.toHaveProperty('scoreFormat');
+    expect(body.variables).not.toHaveProperty('displayAdultContent');
+    expect(body.variables).not.toHaveProperty('includeAdultContentInSearch');
+    expect(useAuthStore.getState().viewer?.options?.profileColor).toBe('purple');
   });
 
   it('switches to Deep Stats tab, displays Taste DNA + Genre Matrix + Studio Loyalty, and opens local drill-down modal', async () => {

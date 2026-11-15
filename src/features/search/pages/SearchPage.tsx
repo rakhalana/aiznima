@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Search as SearchIcon, SlidersHorizontal, Users, X } from 'lucide-react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { Search as SearchIcon, SlidersHorizontal, Sparkles, Users, X } from 'lucide-react';
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
+import { useLoginPromptStore } from '@/features/auth/stores/useLoginPromptStore';
+import { useMyListQuery } from '@/features/my-list/api/myListQueries';
 import {
   createDefaultSearchFilters,
   useSearchCharactersQuery,
@@ -8,6 +10,9 @@ import {
   useSearchStaffQuery,
   useSearchStudiosQuery,
   useSearchUsersQuery,
+  useTasteMainCharactersQuery,
+  useTasteStaffByIdsQuery,
+  useTasteStudiosByIdsQuery,
   type SearchFilters,
 } from '@/features/search/api/searchQueries';
 import { CharacterCard } from '@/features/search/components/CharacterCard';
@@ -15,17 +20,26 @@ import { FilterSheet } from '@/features/search/components/FilterSheet';
 import { StaffCard } from '@/features/search/components/StaffCard';
 import { StudioCard } from '@/features/search/components/StudioCard';
 import { UserCard } from '@/features/search/components/UserCard';
-import { getSearchCardHint } from '@/features/search/utils/searchHelpers';
+import { getSearchCardHint, normalizeSearchInput } from '@/features/search/utils/searchHelpers';
+import {
+  buildMainCharactersFromMedia,
+  buildSearchTasteContext,
+  rankCharactersByTaste,
+  rankStaffByTaste,
+  rankStudiosByTaste,
+} from '@/features/search/utils/searchTasteEngine';
+import { useViewerDeepStatsQuery } from '@/features/taste/api/tasteQueries';
+import { buildTasteProfile, flattenCollectionEntries } from '@/features/taste/utils/tasteEngine';
 import { NetworkError } from '@/shared/api/graphqlClient';
 import type {
-  CharacterSort,
   MediaFormat,
   MediaSeason,
   MediaSort,
   MediaStatus,
+  SearchCharacterSort,
   SearchEntityType,
-  StaffSort,
-  StudioSort,
+  SearchStaffSort,
+  SearchStudioSort,
   UserSort,
 } from '@/shared/api/types';
 import { Button } from '@/shared/components/Button';
@@ -36,6 +50,7 @@ import { ViewModeToggle } from '@/shared/components/ViewModeToggle';
 import { useDebounce } from '@/shared/hooks/useDebounce';
 import { useIsAdultFilter } from '@/shared/hooks/useIsAdultFilter';
 import { usePreferredTitleLanguage } from '@/shared/hooks/usePreferredTitleLanguage';
+import { useAuthStore } from '@/shared/stores/useAuthStore';
 import { usePrefsStore } from '@/shared/stores/usePrefsStore';
 
 const SEARCH_TABS: Array<{
@@ -97,7 +112,7 @@ function parseFiltersFromParams(params: URLSearchParams): SearchFilters {
   if (type === 'CHARACTER') {
     return {
       ...base,
-      characterSort: (rawSort as CharacterSort) || 'FAVOURITES_DESC',
+      characterSort: (rawSort as SearchCharacterSort) || 'FAVOURITES_DESC',
       isBirthday: params.get('birthday') === '1' ? true : undefined,
     };
   }
@@ -105,7 +120,7 @@ function parseFiltersFromParams(params: URLSearchParams): SearchFilters {
   if (type === 'STAFF') {
     return {
       ...base,
-      staffSort: (rawSort as StaffSort) || 'FAVOURITES_DESC',
+      staffSort: (rawSort as SearchStaffSort) || 'FAVOURITES_DESC',
       isBirthday: params.get('birthday') === '1' ? true : undefined,
     };
   }
@@ -113,7 +128,7 @@ function parseFiltersFromParams(params: URLSearchParams): SearchFilters {
   if (type === 'STUDIO') {
     return {
       ...base,
-      studioSort: (rawSort as StudioSort) || 'FAVOURITES_DESC',
+      studioSort: (rawSort as SearchStudioSort) || 'FAVOURITES_DESC',
       animationStudioOnly: params.get('animOnly') === '1' ? true : undefined,
     };
   }
@@ -188,6 +203,7 @@ function countActiveFilters(filters: SearchFilters): number {
 
 export function SearchPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
   const [filterOpen, setFilterOpen] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -199,6 +215,10 @@ export function SearchPage() {
 
   const { allowAdult, isAdultQueryArg } = useIsAdultFilter();
   const preferredLanguage = usePreferredTitleLanguage();
+  const accessToken = useAuthStore((state) => state.accessToken);
+  const viewer = useAuthStore((state) => state.viewer);
+  const openLoginPrompt = useLoginPromptStore((state) => state.openLoginPrompt);
+  const isAuthenticated = Boolean(accessToken && viewer?.id);
 
   useEffect(() => {
     pendingUserEditRef.current = false;
@@ -238,41 +258,240 @@ export function SearchPage() {
   const searchViewMode = usePrefsStore((state) => state.searchViewMode);
   const setSearchViewMode = usePrefsStore((state) => state.setSearchViewMode);
 
-  const mediaQuery = useSearchMediaQuery(urlFilters, isAdultQueryArg);
-  const charactersQuery = useSearchCharactersQuery(urlFilters);
-  const staffQuery = useSearchStaffQuery(urlFilters);
-  const studiosQuery = useSearchStudiosQuery(urlFilters);
-  const usersQuery = useSearchUsersQuery(urlFilters);
+  const normalizedSearch = normalizeSearchInput(urlFilters.search);
+  const isTasteCharacterSort =
+    urlFilters.type === 'CHARACTER' && urlFilters.characterSort === 'TASTE_MATCH';
+  const isTasteStaffSort =
+    urlFilters.type === 'STAFF' && urlFilters.staffSort === 'TASTE_MATCH';
+  const isTasteStudioSort =
+    urlFilters.type === 'STUDIO' && urlFilters.studioSort === 'TASTE_MATCH';
+  const isTasteSortActive =
+    isTasteCharacterSort || isTasteStaffSort || isTasteStudioSort;
 
-  const activeQuery =
-    urlFilters.type === 'CHARACTER'
-      ? charactersQuery
-      : urlFilters.type === 'STAFF'
-        ? staffQuery
-        : urlFilters.type === 'STUDIO'
-          ? studiosQuery
-          : urlFilters.type === 'USER'
-            ? usersQuery
-            : mediaQuery;
+  const isTasteCharacterBrowse =
+    isTasteCharacterSort && normalizedSearch.length === 0 && !urlFilters.isBirthday;
+  const isTasteStaffBrowse =
+    isTasteStaffSort && normalizedSearch.length === 0 && !urlFilters.isBirthday;
+  const isTasteStudioBrowse =
+    isTasteStudioSort && normalizedSearch.length === 0;
+
+  const shouldLoadTasteData = isTasteSortActive && isAuthenticated;
+  const deepStatsQuery = useViewerDeepStatsQuery(shouldLoadTasteData);
+  const animeListQuery = useMyListQuery(
+    shouldLoadTasteData ? viewer?.id : undefined,
+    'ANIME',
+  );
+  const mangaListQuery = useMyListQuery(
+    shouldLoadTasteData && !isTasteStudioSort ? viewer?.id : undefined,
+    'MANGA',
+  );
+
+  const animeEntries = useMemo(
+    () => flattenCollectionEntries(animeListQuery.data),
+    [animeListQuery.data],
+  );
+  const mangaEntries = useMemo(
+    () => flattenCollectionEntries(mangaListQuery.data),
+    [mangaListQuery.data],
+  );
+  const animeStats = deepStatsQuery.data?.statistics?.anime ?? viewer?.statistics?.anime;
+  const mangaStats = deepStatsQuery.data?.statistics?.manga ?? viewer?.statistics?.manga;
+
+  const animeProfile = useMemo(() => {
+    if (!shouldLoadTasteData) return null;
+    return buildTasteProfile({
+      mediaType: 'ANIME',
+      stats: animeStats,
+      entries: animeEntries,
+      scoreFormat: viewer?.mediaListOptions?.scoreFormat,
+      allowAdult,
+    });
+  }, [
+    shouldLoadTasteData,
+    animeStats,
+    animeEntries,
+    viewer?.mediaListOptions?.scoreFormat,
+    allowAdult,
+  ]);
+
+  const mangaProfile = useMemo(() => {
+    if (!shouldLoadTasteData || isTasteStudioSort) return null;
+    return buildTasteProfile({
+      mediaType: 'MANGA',
+      stats: mangaStats,
+      entries: mangaEntries,
+      scoreFormat: viewer?.mediaListOptions?.scoreFormat,
+      allowAdult,
+    });
+  }, [
+    shouldLoadTasteData,
+    isTasteStudioSort,
+    mangaStats,
+    mangaEntries,
+    viewer?.mediaListOptions?.scoreFormat,
+    allowAdult,
+  ]);
+
+  const tasteContext = useMemo(() => {
+    if (!shouldLoadTasteData) return null;
+    return buildSearchTasteContext({
+      animeProfile,
+      mangaProfile,
+      animeEntries,
+      mangaEntries,
+      scoreFormat: viewer?.mediaListOptions?.scoreFormat,
+      allowAdult,
+    });
+  }, [
+    shouldLoadTasteData,
+    animeProfile,
+    mangaProfile,
+    animeEntries,
+    mangaEntries,
+    viewer?.mediaListOptions?.scoreFormat,
+    allowAdult,
+  ]);
+
+  const isTasteBaseLoading =
+    shouldLoadTasteData &&
+    (deepStatsQuery.isLoading ||
+      animeListQuery.isLoading ||
+      (!isTasteStudioSort && mangaListQuery.isLoading));
+  const isTasteBaseError =
+    shouldLoadTasteData &&
+    deepStatsQuery.isError &&
+    animeListQuery.isError &&
+    (isTasteStudioSort || mangaListQuery.isError);
+  const canRunTasteSearch = Boolean(
+    shouldLoadTasteData && !isTasteBaseLoading && !isTasteBaseError && tasteContext?.isReady,
+  );
+
+  const mediaQuery = useSearchMediaQuery(urlFilters, isAdultQueryArg);
+  const charactersQuery = useSearchCharactersQuery(urlFilters, {
+    enabled: !isTasteCharacterSort || canRunTasteSearch,
+  });
+  const tasteMainCharactersQuery = useTasteMainCharactersQuery({
+    mediaIds: tasteContext?.topTasteMediaIds ?? [],
+    enabled: Boolean(
+      isTasteCharacterBrowse &&
+        canRunTasteSearch &&
+        (tasteContext?.topTasteMediaIds.length ?? 0) > 0,
+    ),
+  });
+  const staffQuery = useSearchStaffQuery(urlFilters, {
+    enabled: !isTasteStaffSort || canRunTasteSearch,
+  });
+  const tasteStaffQuery = useTasteStaffByIdsQuery({
+    staffIds: tasteContext?.orderedStaffIds ?? [],
+    enabled: Boolean(
+      isTasteStaffBrowse &&
+        canRunTasteSearch &&
+        (tasteContext?.orderedStaffIds.length ?? 0) > 0,
+    ),
+  });
+  const studiosQuery = useSearchStudiosQuery(urlFilters, {
+    enabled: !isTasteStudioSort || canRunTasteSearch,
+  });
+  const tasteStudiosQuery = useTasteStudiosByIdsQuery({
+    studioIds: tasteContext?.orderedStudioIds ?? [],
+    enabled: Boolean(
+      isTasteStudioBrowse &&
+        canRunTasteSearch &&
+        (tasteContext?.orderedStudioIds.length ?? 0) > 0,
+    ),
+  });
+  const usersQuery = useSearchUsersQuery(urlFilters);
 
   const mediaItems = useMemo(
     () => mediaQuery.data?.pages.flatMap((page) => page.Page.media) ?? [],
     [mediaQuery.data],
   );
-  const characterItems = useMemo(
-    () => charactersQuery.data?.pages.flatMap((page) => page.Page.characters) ?? [],
-    [charactersQuery.data],
-  );
-  const staffItems = useMemo(
-    () => staffQuery.data?.pages.flatMap((page) => page.Page.staff) ?? [],
-    [staffQuery.data],
-  );
+  const characterItems = useMemo(() => {
+    if (isTasteCharacterBrowse) {
+      return buildMainCharactersFromMedia({
+        mediaItems: tasteMainCharactersQuery.data ?? [],
+        mediaAffinityById: tasteContext?.mediaAffinityById ?? new Map(),
+        allowAdult,
+      });
+    }
+    if (isTasteCharacterSort) {
+      return (
+        charactersQuery.data?.pages.flatMap((page) =>
+          rankCharactersByTaste({
+            items: page.Page.characters,
+            context: tasteContext,
+            allowAdult,
+          }),
+        ) ?? []
+      );
+    }
+    return charactersQuery.data?.pages.flatMap((page) => page.Page.characters) ?? [];
+  }, [
+    isTasteCharacterBrowse,
+    isTasteCharacterSort,
+    tasteMainCharactersQuery.data,
+    charactersQuery.data,
+    tasteContext,
+    allowAdult,
+  ]);
+  const staffItems = useMemo(() => {
+    if (isTasteStaffBrowse) {
+      return rankStaffByTaste({
+        items: tasteStaffQuery.data ?? [],
+        context: tasteContext,
+        allowAdult,
+        tieBreakByFavourites: true,
+      });
+    }
+    if (isTasteStaffSort) {
+      return (
+        staffQuery.data?.pages.flatMap((page) =>
+          rankStaffByTaste({
+            items: page.Page.staff,
+            context: tasteContext,
+            allowAdult,
+          }),
+        ) ?? []
+      );
+    }
+    return staffQuery.data?.pages.flatMap((page) => page.Page.staff) ?? [];
+  }, [
+    isTasteStaffBrowse,
+    isTasteStaffSort,
+    tasteStaffQuery.data,
+    staffQuery.data,
+    tasteContext,
+    allowAdult,
+  ]);
   const studioItems = useMemo(() => {
-    const raw = studiosQuery.data?.pages.flatMap((page) => page.Page.studios) ?? [];
+    const raw = isTasteStudioBrowse
+      ? rankStudiosByTaste({
+          items: tasteStudiosQuery.data ?? [],
+          context: tasteContext,
+          allowAdult,
+          tieBreakByFavourites: true,
+        })
+      : isTasteStudioSort
+        ? studiosQuery.data?.pages.flatMap((page) =>
+            rankStudiosByTaste({
+              items: page.Page.studios,
+              context: tasteContext,
+              allowAdult,
+            }),
+          ) ?? []
+        : studiosQuery.data?.pages.flatMap((page) => page.Page.studios) ?? [];
     return urlFilters.animationStudioOnly
       ? raw.filter((studio) => studio.isAnimationStudio)
       : raw;
-  }, [studiosQuery.data, urlFilters.animationStudioOnly]);
+  }, [
+    isTasteStudioBrowse,
+    isTasteStudioSort,
+    tasteStudiosQuery.data,
+    studiosQuery.data,
+    tasteContext,
+    allowAdult,
+    urlFilters.animationStudioOnly,
+  ]);
   const userItems = useMemo(
     () => usersQuery.data?.pages.flatMap((page) => page.Page.users) ?? [],
     [usersQuery.data],
@@ -291,6 +510,88 @@ export function SearchPage() {
 
   const needsUserSearchPrompt =
     urlFilters.type === 'USER' && !urlFilters.search.trim() && !urlFilters.isModerator;
+  const needsTasteLoginPrompt = isTasteSortActive && !isAuthenticated;
+  const needsTasteColdStartPrompt = Boolean(
+    isTasteSortActive &&
+      isAuthenticated &&
+      !isTasteBaseLoading &&
+      !isTasteBaseError &&
+      tasteContext &&
+      !tasteContext.isReady,
+  );
+  const needsTasteMissingPoolPrompt = Boolean(
+    isTasteSortActive &&
+      isAuthenticated &&
+      !isTasteBaseLoading &&
+      !isTasteBaseError &&
+      tasteContext?.isReady &&
+      ((isTasteCharacterBrowse && tasteContext.topTasteMediaIds.length === 0) ||
+        (isTasteStaffBrowse && tasteContext.orderedStaffIds.length === 0) ||
+        (isTasteStudioBrowse && tasteContext.orderedStudioIds.length === 0)),
+  );
+  const hasPreconditionPrompt =
+    needsUserSearchPrompt ||
+    needsTasteLoginPrompt ||
+    needsTasteColdStartPrompt ||
+    needsTasteMissingPoolPrompt;
+
+  const activeInfiniteQuery =
+    urlFilters.type === 'CHARACTER'
+      ? charactersQuery
+      : urlFilters.type === 'STAFF'
+        ? staffQuery
+        : urlFilters.type === 'STUDIO'
+          ? studiosQuery
+          : urlFilters.type === 'USER'
+            ? usersQuery
+            : mediaQuery;
+
+  const isActiveBrowse =
+    isTasteCharacterBrowse || isTasteStaffBrowse || isTasteStudioBrowse;
+  const activeBrowseQuery = isTasteCharacterBrowse
+    ? tasteMainCharactersQuery
+    : isTasteStaffBrowse
+      ? tasteStaffQuery
+      : tasteStudiosQuery;
+
+  const isActiveLoading =
+    isTasteBaseLoading ||
+    (isActiveBrowse ? activeBrowseQuery.isLoading : activeInfiniteQuery.isLoading);
+  const isActiveError =
+    isTasteBaseError ||
+    (isActiveBrowse ? activeBrowseQuery.isError : activeInfiniteQuery.isError);
+  const hasActiveData = isActiveBrowse
+    ? Boolean(activeBrowseQuery.data)
+    : Boolean(activeInfiniteQuery.data);
+  const activeError = isTasteBaseError
+    ? (deepStatsQuery.error ?? animeListQuery.error ?? mangaListQuery.error)
+    : isActiveBrowse
+      ? activeBrowseQuery.error
+      : activeInfiniteQuery.error;
+  const handleRefetchActive = () => {
+    if (isTasteBaseError) {
+      void Promise.all([
+        deepStatsQuery.refetch(),
+        animeListQuery.refetch(),
+        ...(!isTasteStudioSort ? [mangaListQuery.refetch()] : []),
+      ]);
+      return;
+    }
+    if (isActiveBrowse) {
+      void activeBrowseQuery.refetch();
+      return;
+    }
+    void activeInfiniteQuery.refetch();
+  };
+  const handleFallbackFavourites = () => {
+    const next: SearchFilters =
+      urlFilters.type === 'CHARACTER'
+        ? { ...urlFilters, characterSort: 'FAVOURITES_DESC' }
+        : urlFilters.type === 'STAFF'
+          ? { ...urlFilters, staffSort: 'FAVOURITES_DESC' }
+          : { ...urlFilters, studioSort: 'FAVOURITES_DESC' };
+    setSearchParams(serializeFilters(next), { replace: true });
+  };
 
   const activeFilterCount = countActiveFilters(urlFilters);
   const activeTabMeta = SEARCH_TABS.find((t) => t.type === urlFilters.type) ?? SEARCH_TABS[0]!;
@@ -424,7 +725,42 @@ export function SearchPage() {
         />
       ) : null}
 
-      {!needsUserSearchPrompt && activeQuery.isLoading && !activeQuery.data ? (
+      {needsTasteLoginPrompt ? (
+        <EmptyState
+          icon={<Sparkles className="h-6 w-6" strokeWidth={1.75} />}
+          title="Sign in with AniList to use Taste Match"
+          description="Connect your AniList account so Search can order results by your personal Taste DNA."
+          actionLabel="Login with AniList"
+          onAction={() =>
+            openLoginPrompt(
+              'Sign in with AniList to personalize Search sorting with your Taste DNA.',
+              location.pathname + location.search,
+            )
+          }
+        />
+      ) : null}
+
+      {needsTasteColdStartPrompt ? (
+        <EmptyState
+          icon={<Sparkles className="h-6 w-6" strokeWidth={1.75} />}
+          title="Not enough Taste DNA yet"
+          description="Track at least 3 anime or manga titles to unlock Taste Match sorting."
+          actionLabel="Sort by Most Favourited"
+          onAction={handleFallbackFavourites}
+        />
+      ) : null}
+
+      {needsTasteMissingPoolPrompt ? (
+        <EmptyState
+          icon={<Sparkles className="h-6 w-6" strokeWidth={1.75} />}
+          title="No Taste DNA matches yet"
+          description="Try typing a search keyword or switch back to Most Favourited to browse the full catalog."
+          actionLabel="Sort by Most Favourited"
+          onAction={handleFallbackFavourites}
+        />
+      ) : null}
+
+      {!hasPreconditionPrompt && isActiveLoading && !hasActiveData ? (
         searchViewMode === 'list' ? (
           <div className={resultsGridClass}>
             {Array.from({ length: 8 }).map((_, idx) => (
@@ -440,21 +776,21 @@ export function SearchPage() {
         )
       ) : null}
 
-      {!needsUserSearchPrompt && activeQuery.isError && !activeQuery.data ? (
+      {!hasPreconditionPrompt && isActiveError && !hasActiveData ? (
         <ErrorState
-          isOffline={activeQuery.error instanceof NetworkError}
+          isOffline={activeError instanceof NetworkError}
           message={
-            activeQuery.error instanceof Error
-              ? activeQuery.error.message
+            activeError instanceof Error
+              ? activeError.message
               : 'Unable to fetch search results.'
           }
-          onRetry={() => void activeQuery.refetch()}
+          onRetry={handleRefetchActive}
         />
       ) : null}
 
-      {!needsUserSearchPrompt &&
-        !activeQuery.isLoading &&
-        activeQuery.data &&
+      {!hasPreconditionPrompt &&
+        !isActiveLoading &&
+        hasActiveData &&
         resultCount === 0 ? (
         <EmptyState
           icon={<SearchIcon className="h-6 w-6" strokeWidth={1.75} />}
@@ -465,7 +801,7 @@ export function SearchPage() {
         />
       ) : null}
 
-      {!needsUserSearchPrompt && resultCount > 0 ? (
+      {!hasPreconditionPrompt && resultCount > 0 ? (
         <>
           {urlFilters.type === 'ANIME' || urlFilters.type === 'MANGA' ? (
             <div className={resultsGridClass}>
@@ -541,12 +877,12 @@ export function SearchPage() {
             </div>
           ) : null}
 
-          {activeQuery.hasNextPage ? (
+          {!isActiveBrowse && activeInfiniteQuery.hasNextPage ? (
             <div className="flex justify-center pt-2">
               <Button
                 variant="secondary"
-                isLoading={activeQuery.isFetchingNextPage}
-                onClick={() => void activeQuery.fetchNextPage()}
+                isLoading={activeInfiniteQuery.isFetchingNextPage}
+                onClick={() => void activeInfiniteQuery.fetchNextPage()}
               >
                 Load More
               </Button>

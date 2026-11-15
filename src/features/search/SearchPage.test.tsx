@@ -2,6 +2,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { useLoginPromptStore } from '@/features/auth/stores/useLoginPromptStore';
 import { SearchPage } from '@/features/search/pages/SearchPage';
 import type { MediaSummary } from '@/shared/api/types';
 import { useAuthStore } from '@/shared/stores/useAuthStore';
@@ -39,6 +40,7 @@ function makeSearchMedia(id: number, title: string): MediaSummary {
 describe('SearchPage', () => {
   beforeEach(() => {
     window.localStorage.clear();
+    useLoginPromptStore.getState().closeLoginPrompt();
     useAuthStore.setState({ accessToken: null, viewer: null, isHydrated: true });
     usePrefsStore.setState({
       activeMediaType: 'ANIME',
@@ -628,6 +630,642 @@ describe('SearchPage', () => {
         };
         return parsed.variables?.tagCategory_in?.includes('Theme-Game-Sport') ?? false;
       }),
+    ).toBe(true);
+  });
+
+  it('prompts guest users to sign in when Taste Match sort is selected', async () => {
+    const fetchMock = vi.fn().mockImplementation(async (_url, init) => {
+      const body = JSON.parse(String(init?.body ?? '{}')) as { query?: string };
+      if (body.query?.includes('SearchMetaCollections')) {
+        return new Response(
+          JSON.stringify({ data: { GenreCollection: ['Action'], MediaTagCollection: [] } }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } },
+        );
+      }
+      return new Response(
+        JSON.stringify({
+          data: {
+            Page: {
+              pageInfo: { total: 0, perPage: 24, currentPage: 1, lastPage: 1, hasNextPage: false },
+              characters: [],
+            },
+          },
+        }),
+        { status: 200, headers: { 'Content-Type': 'application/json' } },
+      );
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    render(
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter initialEntries={['/search?type=CHARACTER&sort=TASTE_MATCH']}>
+          <SearchPage />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+
+    expect(
+      await screen.findByText(/Sign in with AniList to use Taste Match/i),
+    ).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: /Login with AniList/i }));
+    expect(useLoginPromptStore.getState().isOpen).toBe(true);
+  });
+
+  it('orders Character Taste Match via MAIN-role characters without card badges and ranks keyword matches', async () => {
+    useAuthStore.setState({
+      accessToken: 'test-token',
+      isHydrated: true,
+      viewer: {
+        id: 1,
+        name: 'Tester',
+        about: null,
+        avatar: null,
+        bannerImage: null,
+        siteUrl: null,
+        options: {
+          titleLanguage: 'ROMAJI',
+          displayAdultContent: false,
+          includeAdultContentInSearch: false,
+          profileColor: null,
+        },
+        mediaListOptions: { scoreFormat: 'POINT_100', rowOrder: 'score' },
+        statistics: null,
+      },
+    });
+
+    const animeLow = { ...makeSearchMedia(101, 'Low Rated Show'), genres: ['Comedy'] };
+    const animeHigh = { ...makeSearchMedia(102, 'Top Rated Show'), genres: ['Action', 'Drama'] };
+    const animeMid = { ...makeSearchMedia(103, 'Mid Rated Show'), genres: ['Action'] };
+
+    const fetchMock = vi.fn().mockImplementation(async (_url, init) => {
+      const body = JSON.parse(String(init?.body ?? '{}')) as {
+        query?: string;
+        variables?: { type?: string; search?: string; mediaIds?: number[] };
+      };
+
+      if (body.query?.includes('SearchMetaCollections')) {
+        return new Response(
+          JSON.stringify({ data: { GenreCollection: ['Action', 'Drama'], MediaTagCollection: [] } }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } },
+        );
+      }
+
+      if (body.query?.includes('ViewerDeepStatistics')) {
+        return new Response(
+          JSON.stringify({
+            data: {
+              Viewer: {
+                id: 1,
+                name: 'Tester',
+                statistics: {
+                  anime: {
+                    count: 10,
+                    meanScore: 82,
+                    standardDeviation: 9,
+                    minutesWatched: 2400,
+                    episodesWatched: 100,
+                    genres: [
+                      {
+                        genre: 'Action',
+                        count: 8,
+                        meanScore: 90,
+                        minutesWatched: 1800,
+                        mediaIds: [102, 103],
+                      },
+                      {
+                        genre: 'Drama',
+                        count: 5,
+                        meanScore: 88,
+                        minutesWatched: 1000,
+                        mediaIds: [102],
+                      },
+                    ],
+                    tags: [],
+                    studios: [],
+                    voiceActors: [],
+                    staff: [],
+                    formats: [],
+                    statuses: [],
+                    scores: [],
+                    lengths: [],
+                    releaseYears: [],
+                    countries: [],
+                  },
+                  manga: {
+                    count: 0,
+                    meanScore: 0,
+                    standardDeviation: 0,
+                    chaptersRead: 0,
+                    volumesRead: 0,
+                    genres: [],
+                    tags: [],
+                    staff: [],
+                    formats: [],
+                    statuses: [],
+                    scores: [],
+                    lengths: [],
+                    releaseYears: [],
+                    countries: [],
+                  },
+                },
+              },
+            },
+          }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } },
+        );
+      }
+
+      if (body.query?.includes('UserMediaListCollection')) {
+        const entries =
+          body.variables?.type === 'ANIME'
+            ? [
+                {
+                  id: 1,
+                  mediaId: 101,
+                  status: 'COMPLETED',
+                  score: 65,
+                  progress: 12,
+                  progressVolumes: null,
+                  repeat: 0,
+                  priority: 0,
+                  private: false,
+                  notes: null,
+                  updatedAt: 1700000100,
+                  createdAt: 1700000000,
+                  startedAt: null,
+                  completedAt: null,
+                  media: animeLow,
+                },
+                {
+                  id: 2,
+                  mediaId: 102,
+                  status: 'COMPLETED',
+                  score: 96,
+                  progress: 24,
+                  progressVolumes: null,
+                  repeat: 0,
+                  priority: 0,
+                  private: false,
+                  notes: null,
+                  updatedAt: 1700000200,
+                  createdAt: 1700000000,
+                  startedAt: null,
+                  completedAt: null,
+                  media: animeHigh,
+                },
+                {
+                  id: 3,
+                  mediaId: 103,
+                  status: 'COMPLETED',
+                  score: 82,
+                  progress: 12,
+                  progressVolumes: null,
+                  repeat: 0,
+                  priority: 0,
+                  private: false,
+                  notes: null,
+                  updatedAt: 1700000300,
+                  createdAt: 1700000000,
+                  startedAt: null,
+                  completedAt: null,
+                  media: animeMid,
+                },
+              ]
+            : [];
+
+        return new Response(
+          JSON.stringify({
+            data: {
+              MediaListCollection: {
+                hasNextChunk: false,
+                lists: entries.length
+                  ? [{ name: 'Completed', isCustomList: false, status: 'COMPLETED', entries }]
+                  : [],
+              },
+            },
+          }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } },
+        );
+      }
+
+      if (body.query?.includes('SearchTasteMainCharacters')) {
+        return new Response(
+          JSON.stringify({
+            data: {
+              Page: {
+                media: [
+                  {
+                    id: 101,
+                    type: 'ANIME',
+                    isAdult: false,
+                    title: animeLow.title,
+                    characters: {
+                      nodes: [
+                        {
+                          id: 5001,
+                          name: { full: 'Alpha Main', native: null },
+                          image: { large: 'https://example.com/5001.jpg', medium: null },
+                          favourites: 12000,
+                        },
+                      ],
+                    },
+                  },
+                  {
+                    id: 102,
+                    type: 'ANIME',
+                    isAdult: false,
+                    title: animeHigh.title,
+                    characters: {
+                      nodes: [
+                        {
+                          id: 5002,
+                          name: { full: 'Zeta Main', native: null },
+                          image: { large: 'https://example.com/5002.jpg', medium: null },
+                          favourites: 900,
+                        },
+                      ],
+                    },
+                  },
+                ],
+              },
+            },
+          }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } },
+        );
+      }
+
+      if (body.query?.includes('SearchCharactersTaste')) {
+        return new Response(
+          JSON.stringify({
+            data: {
+              Page: {
+                pageInfo: { total: 2, perPage: 24, currentPage: 1, lastPage: 1, hasNextPage: false },
+                characters: [
+                  {
+                    id: 6001,
+                    name: { full: 'Sab Supporting', native: null },
+                    image: { large: 'https://example.com/6001.jpg', medium: null },
+                    favourites: 95000,
+                    media: {
+                      edges: [{ characterRole: 'SUPPORTING', node: animeHigh }],
+                    },
+                  },
+                  {
+                    id: 6002,
+                    name: { full: 'Sab Protagonist', native: null },
+                    image: { large: 'https://example.com/6002.jpg', medium: null },
+                    favourites: 1500,
+                    media: {
+                      edges: [{ characterRole: 'MAIN', node: animeMid }],
+                    },
+                  },
+                ],
+              },
+            },
+          }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } },
+        );
+      }
+
+      return new Response(
+        JSON.stringify({
+          data: {
+            Page: {
+              pageInfo: { total: 1, perPage: 24, currentPage: 1, lastPage: 1, hasNextPage: false },
+              characters: [
+                {
+                  id: 5001,
+                  name: { full: 'Alpha Main', native: null },
+                  image: { large: 'https://example.com/5001.jpg', medium: null },
+                  favourites: 12000,
+                },
+              ],
+            },
+          },
+        }),
+        { status: 200, headers: { 'Content-Type': 'application/json' } },
+      );
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    render(
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter initialEntries={['/search?type=CHARACTER']}>
+          <SearchPage />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+
+    expect(await screen.findByText('Alpha Main')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: /filters/i }));
+    fireEvent.click(screen.getByRole('combobox', { name: /sort/i }));
+    fireEvent.click(screen.getByRole('option', { name: 'Taste Match' }));
+    fireEvent.click(screen.getByRole('button', { name: /apply filters/i }));
+
+    const zetaEl = await screen.findByText('Zeta Main');
+    const alphaEl = await screen.findByText('Alpha Main');
+    expect(
+      Boolean(zetaEl.compareDocumentPosition(alphaEl) & Node.DOCUMENT_POSITION_FOLLOWING),
+    ).toBe(true);
+
+    const zetaCard = zetaEl.closest('a') ?? zetaEl.closest('[class*="card"]') ?? zetaEl.parentElement;
+    expect(zetaCard?.textContent ?? '').not.toMatch(/taste match/i);
+
+    const searchInput =
+      screen.queryByRole('searchbox') ?? screen.getByRole('textbox');
+    fireEvent.change(searchInput, { target: { value: 'Sab' } });
+
+    const sabProtag = await screen.findByText('Sab Protagonist');
+    const sabSupport = await screen.findByText('Sab Supporting');
+    expect(
+      Boolean(sabProtag.compareDocumentPosition(sabSupport) & Node.DOCUMENT_POSITION_FOLLOWING),
+    ).toBe(true);
+
+    expect(
+      fetchMock.mock.calls.some(([, init]) =>
+        String(init?.body ?? '').includes('SearchTasteMainCharacters'),
+      ),
+    ).toBe(true);
+    expect(
+      fetchMock.mock.calls.some(([, init]) =>
+        String(init?.body ?? '').includes('SearchCharactersTaste'),
+      ),
+    ).toBe(true);
+  });
+
+  it('orders Staff and Studio Taste Match pools by user Taste DNA affinity', async () => {
+    useAuthStore.setState({
+      accessToken: 'test-token',
+      isHydrated: true,
+      viewer: {
+        id: 1,
+        name: 'Tester',
+        about: null,
+        avatar: null,
+        bannerImage: null,
+        siteUrl: null,
+        options: {
+          titleLanguage: 'ROMAJI',
+          displayAdultContent: false,
+          includeAdultContentInSearch: false,
+          profileColor: null,
+        },
+        mediaListOptions: { scoreFormat: 'POINT_100', rowOrder: 'score' },
+        statistics: null,
+      },
+    });
+
+    const s1 = makeSearchMedia(201, 'Show 1');
+    const s2 = makeSearchMedia(202, 'Show 2');
+    const s3 = makeSearchMedia(203, 'Show 3');
+
+    const fetchMock = vi.fn().mockImplementation(async (_url, init) => {
+      const body = JSON.parse(String(init?.body ?? '{}')) as {
+        query?: string;
+        variables?: { type?: string };
+      };
+
+      if (body.query?.includes('SearchMetaCollections')) {
+        return new Response(
+          JSON.stringify({ data: { GenreCollection: ['Action'], MediaTagCollection: [] } }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } },
+        );
+      }
+
+      if (body.query?.includes('ViewerDeepStatistics')) {
+        return new Response(
+          JSON.stringify({
+            data: {
+              Viewer: {
+                id: 1,
+                name: 'Tester',
+                statistics: {
+                  anime: {
+                    count: 10,
+                    meanScore: 84,
+                    standardDeviation: 8,
+                    minutesWatched: 2400,
+                    episodesWatched: 100,
+                    genres: [
+                      {
+                        genre: 'Action',
+                        count: 10,
+                        meanScore: 86,
+                        minutesWatched: 2000,
+                        mediaIds: [201, 202, 203],
+                      },
+                    ],
+                    tags: [],
+                    studios: [
+                      {
+                        studio: { id: 10, name: 'Ufotable', isAnimationStudio: true, favourites: 50000 },
+                        count: 6,
+                        meanScore: 93,
+                        minutesWatched: 1500,
+                        mediaIds: [201],
+                      },
+                      {
+                        studio: { id: 20, name: 'Lower Studio', isAnimationStudio: true, favourites: 20000 },
+                        count: 2,
+                        meanScore: 72,
+                        minutesWatched: 400,
+                        mediaIds: [203],
+                      },
+                    ],
+                    voiceActors: [
+                      {
+                        voiceActor: {
+                          id: 301,
+                          name: { full: 'Kana Hanazawa', native: '花澤香菜' },
+                          languageV2: 'Japanese',
+                          image: null,
+                          primaryOccupations: ['Voice Actor'],
+                        },
+                        characterIds: [1],
+                        count: 5,
+                        meanScore: 92,
+                        minutesWatched: 1200,
+                        mediaIds: [201, 202],
+                      },
+                    ],
+                    staff: [
+                      {
+                        staff: {
+                          id: 302,
+                          name: { full: 'Secondary Director', native: null },
+                          languageV2: 'Japanese',
+                          image: null,
+                          primaryOccupations: ['Director'],
+                        },
+                        count: 2,
+                        meanScore: 78,
+                        minutesWatched: 400,
+                        mediaIds: [203],
+                      },
+                    ],
+                    formats: [],
+                    statuses: [],
+                    scores: [],
+                    lengths: [],
+                    releaseYears: [],
+                    countries: [],
+                  },
+                  manga: {
+                    count: 0,
+                    meanScore: 0,
+                    standardDeviation: 0,
+                    chaptersRead: 0,
+                    volumesRead: 0,
+                    genres: [],
+                    tags: [],
+                    staff: [],
+                    formats: [],
+                    statuses: [],
+                    scores: [],
+                    lengths: [],
+                    releaseYears: [],
+                    countries: [],
+                  },
+                },
+              },
+            },
+          }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } },
+        );
+      }
+
+      if (body.query?.includes('UserMediaListCollection')) {
+        const entries =
+          body.variables?.type === 'ANIME'
+            ? [s1, s2, s3].map((media, idx) => ({
+                id: idx + 1,
+                mediaId: media.id,
+                status: 'COMPLETED',
+                score: 90 - idx * 5,
+                progress: 12,
+                progressVolumes: null,
+                repeat: 0,
+                priority: 0,
+                private: false,
+                notes: null,
+                updatedAt: 1700000000 + idx,
+                createdAt: 1700000000,
+                startedAt: null,
+                completedAt: null,
+                media,
+              }))
+            : [];
+        return new Response(
+          JSON.stringify({
+            data: {
+              MediaListCollection: {
+                hasNextChunk: false,
+                lists: entries.length
+                  ? [{ name: 'Completed', isCustomList: false, status: 'COMPLETED', entries }]
+                  : [],
+              },
+            },
+          }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } },
+        );
+      }
+
+      if (body.query?.includes('SearchTasteStaffByIds')) {
+        return new Response(
+          JSON.stringify({
+            data: {
+              Page: {
+                staff: [
+                  {
+                    id: 302,
+                    name: { full: 'Secondary Director', native: null },
+                    image: { large: 'https://example.com/302.jpg', medium: null },
+                    primaryOccupations: ['Director'],
+                    favourites: 15000,
+                  },
+                  {
+                    id: 301,
+                    name: { full: 'Kana Hanazawa', native: '花澤香菜' },
+                    image: { large: 'https://example.com/301.jpg', medium: null },
+                    primaryOccupations: ['Voice Actor'],
+                    favourites: 9000,
+                  },
+                ],
+              },
+            },
+          }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } },
+        );
+      }
+
+      if (body.query?.includes('SearchTasteStudiosByIds')) {
+        return new Response(
+          JSON.stringify({
+            data: {
+              Page: {
+                studios: [
+                  {
+                    id: 20,
+                    name: 'Lower Studio',
+                    isAnimationStudio: true,
+                    favourites: 20000,
+                    media: { nodes: [s3] },
+                  },
+                  {
+                    id: 10,
+                    name: 'Ufotable',
+                    isAnimationStudio: true,
+                    favourites: 50000,
+                    media: { nodes: [s1] },
+                  },
+                ],
+              },
+            },
+          }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } },
+        );
+      }
+
+      return new Response(
+        JSON.stringify({ data: { Page: { pageInfo: { total: 0 }, staff: [], studios: [] } } }),
+        { status: 200, headers: { 'Content-Type': 'application/json' } },
+      );
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const staffClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const { unmount } = render(
+      <QueryClientProvider client={staffClient}>
+        <MemoryRouter initialEntries={['/search?type=STAFF&sort=TASTE_MATCH']}>
+          <SearchPage />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+
+    const kanaEl = await screen.findByText('Kana Hanazawa');
+    const dirEl = await screen.findByText('Secondary Director');
+    expect(
+      Boolean(kanaEl.compareDocumentPosition(dirEl) & Node.DOCUMENT_POSITION_FOLLOWING),
+    ).toBe(true);
+    unmount();
+
+    const studioClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    render(
+      <QueryClientProvider client={studioClient}>
+        <MemoryRouter initialEntries={['/search?type=STUDIO&sort=TASTE_MATCH']}>
+          <SearchPage />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+
+    const ufotableEl = await screen.findByText('Ufotable');
+    const lowerStudioEl = await screen.findByText('Lower Studio');
+    expect(
+      Boolean(ufotableEl.compareDocumentPosition(lowerStudioEl) & Node.DOCUMENT_POSITION_FOLLOWING),
     ).toBe(true);
   });
 });

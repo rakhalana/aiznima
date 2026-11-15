@@ -4,6 +4,27 @@ import type { MediaType } from '@/shared/api/types';
 
 const PREFS_STORAGE_KEY = 'aiznima:prefs';
 const THEME_FAST_KEY = 'aiznima:theme';
+const THEME_TRANSITION_MS = 320;
+
+let themeTransitionTimer: ReturnType<typeof setTimeout> | null = null;
+
+function prefersReducedMotion(): boolean {
+  return (
+    typeof window !== 'undefined' &&
+    typeof window.matchMedia === 'function' &&
+    window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  );
+}
+
+function clearThemeTransition(): void {
+  if (themeTransitionTimer !== null) {
+    clearTimeout(themeTransitionTimer);
+    themeTransitionTimer = null;
+  }
+  if (typeof document !== 'undefined') {
+    document.documentElement.classList.remove('theme-transition');
+  }
+}
 
 export type ThemeMode = 'light' | 'dark';
 export type ViewMode = 'grid' | 'list';
@@ -32,16 +53,38 @@ export interface PrefsState {
   setListViewMode: (mode: ViewMode) => Promise<void>;
 }
 
-function applyThemeToDom(theme: ThemeMode): void {
+function applyThemeToDom(theme: ThemeMode, animate = false): void {
   if (typeof document === 'undefined') {
     return;
   }
 
-  document.documentElement.classList.toggle('dark', theme === 'dark');
+  const root = document.documentElement;
+  const isDark = theme === 'dark';
+  const hasThemeChanged = root.classList.contains('dark') !== isDark;
+
+  if (animate && hasThemeChanged && !prefersReducedMotion()) {
+    if (themeTransitionTimer !== null) {
+      clearTimeout(themeTransitionTimer);
+    }
+    root.classList.add('theme-transition');
+    if (typeof window !== 'undefined' && typeof window.getComputedStyle === 'function') {
+      void window.getComputedStyle(root).backgroundColor;
+    }
+    root.classList.toggle('dark', isDark);
+    themeTransitionTimer = setTimeout(() => {
+      root.classList.remove('theme-transition');
+      themeTransitionTimer = null;
+    }, THEME_TRANSITION_MS);
+  } else {
+    if (!animate) {
+      clearThemeTransition();
+    }
+    root.classList.toggle('dark', isDark);
+  }
 
   const metaTheme = document.querySelector('meta[name="theme-color"]');
   if (metaTheme) {
-    metaTheme.setAttribute('content', theme === 'dark' ? '#0B1120' : '#F8FAFC');
+    metaTheme.setAttribute('content', isDark ? '#0B1120' : '#F8FAFC');
   }
 
   try {
@@ -110,7 +153,7 @@ export const usePrefsStore = create<PrefsState>((set, get) => ({
   },
 
   async setTheme(theme) {
-    applyThemeToDom(theme);
+    applyThemeToDom(theme, true);
     set({ theme });
     await persistPrefs({ ...get(), theme });
   },

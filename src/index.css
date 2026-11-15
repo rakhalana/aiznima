@@ -50,14 +50,19 @@
   --shadow-glass-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.85);
   --shadow-glass-float: 0 10px 30px rgba(15, 23, 42, 0.08), 0 1px 3px rgba(15, 23, 42, 0.04);
 
-  --ambient-wash-gradient:
+  --ambient-wash-gradient-light:
     radial-gradient(ellipse 80% 55% at 50% -10%, rgba(37, 99, 235, 0.075), transparent 72%),
     radial-gradient(ellipse 50% 42% at 85% 0%, rgba(99, 102, 241, 0.055), transparent 65%);
+  --ambient-wash-gradient-dark:
+    radial-gradient(ellipse 80% 55% at 50% -10%, rgba(59, 130, 246, 0.14), transparent 72%),
+    radial-gradient(ellipse 50% 42% at 85% 0%, rgba(99, 102, 241, 0.1), transparent 65%);
+  --ambient-wash-gradient: var(--ambient-wash-gradient-light);
 
   /* Desktop floating top-navbar clearance for sticky DetailTopBar */
   --desktop-nav-height: 4.5rem;
 
   --ease-crisp: cubic-bezier(0.22, 1, 0.36, 1);
+  --theme-transition-duration: 300ms;
 }
 
 .dark {
@@ -110,9 +115,7 @@
   --shadow-glass-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.1);
   --shadow-glass-float: 0 12px 32px rgba(0, 0, 0, 0.42), 0 1px 3px rgba(0, 0, 0, 0.25);
 
-  --ambient-wash-gradient:
-    radial-gradient(ellipse 80% 55% at 50% -10%, rgba(59, 130, 246, 0.14), transparent 72%),
-    radial-gradient(ellipse 50% 42% at 85% 0%, rgba(99, 102, 241, 0.1), transparent 65%);
+  --ambient-wash-gradient: var(--ambient-wash-gradient-dark);
 }
 
 html,
@@ -172,6 +175,29 @@ body {
   transition-timing-function: var(--ease-crisp);
 }
 
+html.theme-transition,
+html.theme-transition *:not(.theme-switch-thumb):not(.theme-switch-icon),
+html.theme-transition *:not(.ambient-canvas-wash)::before,
+html.theme-transition *:not(.ambient-canvas-wash)::after {
+  transition-property:
+    background-color, border-color, color, fill, stroke, box-shadow, outline-color,
+    text-decoration-color !important;
+  transition-duration: var(--theme-transition-duration) !important;
+  transition-timing-function: var(--ease-crisp) !important;
+}
+
+.theme-switch-thumb {
+  transition-property: transform, background-color, box-shadow;
+  transition-duration: var(--theme-transition-duration);
+  transition-timing-function: var(--ease-crisp);
+}
+
+.theme-switch-icon {
+  transition-property: transform, opacity, color;
+  transition-duration: var(--theme-transition-duration);
+  transition-timing-function: var(--ease-crisp);
+}
+
 .shadow-token-xs {
   box-shadow: var(--shadow-xs);
 }
@@ -186,7 +212,34 @@ body {
 
 @layer components {
   .ambient-canvas-wash {
-    background-image: var(--ambient-wash-gradient);
+    overflow: hidden;
+  }
+
+  .ambient-canvas-wash::before,
+  .ambient-canvas-wash::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    transition: opacity var(--theme-transition-duration) var(--ease-crisp);
+  }
+
+  .ambient-canvas-wash::before {
+    background-image: var(--ambient-wash-gradient-light);
+    opacity: 1;
+  }
+
+  .ambient-canvas-wash::after {
+    background-image: var(--ambient-wash-gradient-dark);
+    opacity: 0;
+  }
+
+  .dark .ambient-canvas-wash::before {
+    opacity: 0;
+  }
+
+  .dark .ambient-canvas-wash::after {
+    opacity: 1;
   }
 
   /* Tier 1 (Mobile/APK subtle) docked chrome */

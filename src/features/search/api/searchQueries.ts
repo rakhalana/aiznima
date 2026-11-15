@@ -14,19 +14,25 @@ import {
   type MediaFilterCriteria,
 } from '@/features/search/utils/searchHelpers';
 import type {
+  SearchCharacterTasteItem,
+  SearchStaffTasteItem,
+  SearchStudioTasteItem,
+  TasteMainCharacterMedia,
+} from '@/features/search/utils/searchTasteEngine';
+import type {
   CharacterSort,
-  CharacterSummary,
   MediaFormat,
   MediaSeason,
   MediaSort,
   MediaStatus,
   MediaSummary,
   PageInfo,
+  SearchCharacterSort,
   SearchEntityType,
+  SearchStaffSort,
+  SearchStudioSort,
   StaffSort,
-  StaffSummary,
   StudioSort,
-  StudioSummary,
   UserSearchSummary,
   UserSort,
 } from '@/shared/api/types';
@@ -46,9 +52,9 @@ export interface SearchFilters {
   tags: string[];
   tagCategories: string[];
   sort: MediaSort;
-  characterSort: CharacterSort;
-  staffSort: StaffSort;
-  studioSort: StudioSort;
+  characterSort: SearchCharacterSort;
+  staffSort: SearchStaffSort;
+  studioSort: SearchStudioSort;
   userSort: UserSort;
   isBirthday?: boolean;
   animationStudioOnly?: boolean;
@@ -166,6 +172,68 @@ const SEARCH_CHARACTERS_QUERY = `
   }
 `;
 
+const SEARCH_CHARACTERS_TASTE_QUERY = `
+  query SearchCharactersTaste(
+    $page: Int
+    $perPage: Int
+    $search: String
+    $isBirthday: Boolean
+    $sort: [CharacterSort]
+  ) {
+    Page(page: $page, perPage: $perPage) {
+      pageInfo {
+        total
+        perPage
+        currentPage
+        lastPage
+        hasNextPage
+      }
+      characters(search: $search, isBirthday: $isBirthday, sort: $sort) {
+        ${CHARACTER_SUMMARY_FIELDS}
+        media(sort: [POPULARITY_DESC], perPage: 12) {
+          edges {
+            characterRole
+            node {
+              id
+              type
+              isAdult
+              genres
+              meanScore
+              title {
+                romaji
+                english
+                native
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+`;
+
+const SEARCH_TASTE_MAIN_CHARACTERS_QUERY = `
+  query SearchTasteMainCharacters($mediaIds: [Int]) {
+    Page(page: 1, perPage: 25) {
+      media(id_in: $mediaIds) {
+        id
+        type
+        isAdult
+        title {
+          romaji
+          english
+          native
+        }
+        characters(role: MAIN, sort: [FAVOURITES_DESC], perPage: 8) {
+          nodes {
+            ${CHARACTER_SUMMARY_FIELDS}
+          }
+        }
+      }
+    }
+  }
+`;
+
 const SEARCH_STAFF_QUERY = `
   query SearchStaff(
     $page: Int
@@ -189,6 +257,55 @@ const SEARCH_STAFF_QUERY = `
   }
 `;
 
+const SEARCH_STAFF_TASTE_QUERY = `
+  query SearchStaffTaste(
+    $page: Int
+    $perPage: Int
+    $search: String
+    $isBirthday: Boolean
+    $sort: [StaffSort]
+  ) {
+    Page(page: $page, perPage: $perPage) {
+      pageInfo {
+        total
+        perPage
+        currentPage
+        lastPage
+        hasNextPage
+      }
+      staff(search: $search, isBirthday: $isBirthday, sort: $sort) {
+        ${STAFF_SUMMARY_FIELDS}
+        staffMedia(perPage: 10, sort: [POPULARITY_DESC]) {
+          nodes {
+            id
+            genres
+            meanScore
+            isAdult
+          }
+        }
+        characterMedia(perPage: 8, sort: [POPULARITY_DESC]) {
+          nodes {
+            id
+            genres
+            meanScore
+            isAdult
+          }
+        }
+      }
+    }
+  }
+`;
+
+const SEARCH_TASTE_STAFF_BY_IDS_QUERY = `
+  query SearchTasteStaffByIds($ids: [Int]) {
+    Page(page: 1, perPage: 50) {
+      staff(id_in: $ids) {
+        ${STAFF_SUMMARY_FIELDS}
+      }
+    }
+  }
+`;
+
 const SEARCH_STUDIOS_QUERY = `
   query SearchStudios(
     $page: Int
@@ -205,6 +322,46 @@ const SEARCH_STUDIOS_QUERY = `
         hasNextPage
       }
       studios(search: $search, sort: $sort) {
+        ${STUDIO_SUMMARY_FIELDS}
+      }
+    }
+  }
+`;
+
+const SEARCH_STUDIOS_TASTE_QUERY = `
+  query SearchStudiosTaste(
+    $page: Int
+    $perPage: Int
+    $search: String
+    $sort: [StudioSort]
+  ) {
+    Page(page: $page, perPage: $perPage) {
+      pageInfo {
+        total
+        perPage
+        currentPage
+        lastPage
+        hasNextPage
+      }
+      studios(search: $search, sort: $sort) {
+        ${STUDIO_SUMMARY_FIELDS}
+        media(isMain: true, perPage: 10, sort: [POPULARITY_DESC]) {
+          nodes {
+            id
+            genres
+            meanScore
+            isAdult
+          }
+        }
+      }
+    }
+  }
+`;
+
+const SEARCH_TASTE_STUDIOS_BY_IDS_QUERY = `
+  query SearchTasteStudiosByIds($ids: [Int]) {
+    Page(page: 1, perPage: 25) {
+      studios(id_in: $ids) {
         ${STUDIO_SUMMARY_FIELDS}
       }
     }
@@ -317,21 +474,39 @@ function mergeSearchMediaResults(
 interface SearchCharactersRaw {
   Page: {
     pageInfo: PageInfo;
-    characters: CharacterSummary[];
+    characters: SearchCharacterTasteItem[];
   };
 }
 
 interface SearchStaffRaw {
   Page: {
     pageInfo: PageInfo;
-    staff: StaffSummary[];
+    staff: SearchStaffTasteItem[];
   };
 }
 
 interface SearchStudiosRaw {
   Page: {
     pageInfo: PageInfo;
-    studios: StudioSummary[];
+    studios: SearchStudioTasteItem[];
+  };
+}
+
+interface TasteMainCharactersRaw {
+  Page: {
+    media: TasteMainCharacterMedia[];
+  };
+}
+
+interface TasteStaffByIdsRaw {
+  Page: {
+    staff: SearchStaffTasteItem[];
+  };
+}
+
+interface TasteStudiosByIdsRaw {
+  Page: {
+    studios: SearchStudioTasteItem[];
   };
 }
 
@@ -438,12 +613,22 @@ export function useSearchMediaQuery(
   });
 }
 
-export function useSearchCharactersQuery(filters: SearchFilters) {
+export function useSearchCharactersQuery(
+  filters: SearchFilters,
+  options: { enabled?: boolean } = {},
+) {
+  const { enabled = true } = options;
   const normalizedSearch = normalizeSearchInput(filters.search);
+  const isTasteSort = filters.characterSort === 'TASTE_MATCH';
+  const needsPagedSearch = !isTasteSort || normalizedSearch.length > 0 || Boolean(filters.isBirthday);
   const effectiveSort: CharacterSort =
-    normalizedSearch.length > 0 && filters.characterSort === 'FAVOURITES_DESC'
-      ? 'SEARCH_MATCH'
-      : filters.characterSort;
+    filters.characterSort === 'TASTE_MATCH'
+      ? normalizedSearch.length > 0
+        ? 'SEARCH_MATCH'
+        : 'FAVOURITES_DESC'
+      : normalizedSearch.length > 0 && filters.characterSort === 'FAVOURITES_DESC'
+        ? 'SEARCH_MATCH'
+        : filters.characterSort;
 
   return useInfiniteQuery({
     queryKey: [
@@ -452,14 +637,16 @@ export function useSearchCharactersQuery(filters: SearchFilters) {
       normalizedSearch,
       filters.isBirthday ?? false,
       effectiveSort,
+      isTasteSort ? 'taste' : 'standard',
     ],
-    enabled: filters.type === 'CHARACTER',
+    enabled: Boolean(enabled && filters.type === 'CHARACTER' && needsPagedSearch),
     initialPageParam: 1,
     staleTime: 2 * 60 * 1000,
     queryFn: async ({ pageParam, signal }) => {
+      const query = isTasteSort ? SEARCH_CHARACTERS_TASTE_QUERY : SEARCH_CHARACTERS_QUERY;
       const executeQuery = (searchTerm: string | undefined, pageNum: number) =>
         anilistRequest<SearchCharactersRaw>(
-          SEARCH_CHARACTERS_QUERY,
+          query,
           {
             page: pageNum,
             perPage: 24,
@@ -489,12 +676,42 @@ export function useSearchCharactersQuery(filters: SearchFilters) {
   });
 }
 
-export function useSearchStaffQuery(filters: SearchFilters) {
+export function useTasteMainCharactersQuery(params: {
+  mediaIds: number[];
+  enabled: boolean;
+}) {
+  const { mediaIds, enabled } = params;
+  return useQuery({
+    queryKey: ['search', 'character', 'taste-main', mediaIds],
+    enabled: Boolean(enabled && mediaIds.length > 0),
+    staleTime: 5 * 60 * 1000,
+    queryFn: async ({ signal }) => {
+      const raw = await anilistRequest<TasteMainCharactersRaw>(
+        SEARCH_TASTE_MAIN_CHARACTERS_QUERY,
+        { mediaIds },
+        { signal },
+      );
+      return raw?.Page?.media ?? [];
+    },
+  });
+}
+
+export function useSearchStaffQuery(
+  filters: SearchFilters,
+  options: { enabled?: boolean } = {},
+) {
+  const { enabled = true } = options;
   const normalizedSearch = normalizeSearchInput(filters.search);
+  const isTasteSort = filters.staffSort === 'TASTE_MATCH';
+  const needsPagedSearch = !isTasteSort || normalizedSearch.length > 0 || Boolean(filters.isBirthday);
   const effectiveSort: StaffSort =
-    normalizedSearch.length > 0 && filters.staffSort === 'FAVOURITES_DESC'
-      ? 'SEARCH_MATCH'
-      : filters.staffSort;
+    filters.staffSort === 'TASTE_MATCH'
+      ? normalizedSearch.length > 0
+        ? 'SEARCH_MATCH'
+        : 'FAVOURITES_DESC'
+      : normalizedSearch.length > 0 && filters.staffSort === 'FAVOURITES_DESC'
+        ? 'SEARCH_MATCH'
+        : filters.staffSort;
 
   return useInfiniteQuery({
     queryKey: [
@@ -503,13 +720,14 @@ export function useSearchStaffQuery(filters: SearchFilters) {
       normalizedSearch,
       filters.isBirthday ?? false,
       effectiveSort,
+      isTasteSort ? 'taste' : 'standard',
     ],
-    enabled: filters.type === 'STAFF',
+    enabled: Boolean(enabled && filters.type === 'STAFF' && needsPagedSearch),
     initialPageParam: 1,
     staleTime: 2 * 60 * 1000,
     queryFn: ({ pageParam, signal }) =>
       anilistRequest<SearchStaffRaw>(
-        SEARCH_STAFF_QUERY,
+        isTasteSort ? SEARCH_STAFF_TASTE_QUERY : SEARCH_STAFF_QUERY,
         {
           page: pageParam,
           perPage: 24,
@@ -526,21 +744,57 @@ export function useSearchStaffQuery(filters: SearchFilters) {
   });
 }
 
-export function useSearchStudiosQuery(filters: SearchFilters) {
+export function useTasteStaffByIdsQuery(params: {
+  staffIds: number[];
+  enabled: boolean;
+}) {
+  const { staffIds, enabled } = params;
+  return useQuery({
+    queryKey: ['search', 'staff', 'taste-ids', staffIds],
+    enabled: Boolean(enabled && staffIds.length > 0),
+    staleTime: 5 * 60 * 1000,
+    queryFn: async ({ signal }) => {
+      const raw = await anilistRequest<TasteStaffByIdsRaw>(
+        SEARCH_TASTE_STAFF_BY_IDS_QUERY,
+        { ids: staffIds },
+        { signal },
+      );
+      return raw?.Page?.staff ?? [];
+    },
+  });
+}
+
+export function useSearchStudiosQuery(
+  filters: SearchFilters,
+  options: { enabled?: boolean } = {},
+) {
+  const { enabled = true } = options;
   const normalizedSearch = normalizeSearchInput(filters.search);
+  const isTasteSort = filters.studioSort === 'TASTE_MATCH';
+  const needsPagedSearch = !isTasteSort || normalizedSearch.length > 0;
   const effectiveSort: StudioSort =
-    normalizedSearch.length > 0 && filters.studioSort === 'FAVOURITES_DESC'
-      ? 'SEARCH_MATCH'
-      : filters.studioSort;
+    filters.studioSort === 'TASTE_MATCH'
+      ? normalizedSearch.length > 0
+        ? 'SEARCH_MATCH'
+        : 'FAVOURITES_DESC'
+      : normalizedSearch.length > 0 && filters.studioSort === 'FAVOURITES_DESC'
+        ? 'SEARCH_MATCH'
+        : filters.studioSort;
 
   return useInfiniteQuery({
-    queryKey: ['search', 'studio', normalizedSearch, effectiveSort],
-    enabled: filters.type === 'STUDIO',
+    queryKey: [
+      'search',
+      'studio',
+      normalizedSearch,
+      effectiveSort,
+      isTasteSort ? 'taste' : 'standard',
+    ],
+    enabled: Boolean(enabled && filters.type === 'STUDIO' && needsPagedSearch),
     initialPageParam: 1,
     staleTime: 2 * 60 * 1000,
     queryFn: ({ pageParam, signal }) =>
       anilistRequest<SearchStudiosRaw>(
-        SEARCH_STUDIOS_QUERY,
+        isTasteSort ? SEARCH_STUDIOS_TASTE_QUERY : SEARCH_STUDIOS_QUERY,
         {
           page: pageParam,
           perPage: 24,
@@ -553,6 +807,26 @@ export function useSearchStudiosQuery(filters: SearchFilters) {
       lastPage.Page.pageInfo.hasNextPage
         ? (lastPage.Page.pageInfo.currentPage ?? 1) + 1
         : undefined,
+  });
+}
+
+export function useTasteStudiosByIdsQuery(params: {
+  studioIds: number[];
+  enabled: boolean;
+}) {
+  const { studioIds, enabled } = params;
+  return useQuery({
+    queryKey: ['search', 'studio', 'taste-ids', studioIds],
+    enabled: Boolean(enabled && studioIds.length > 0),
+    staleTime: 5 * 60 * 1000,
+    queryFn: async ({ signal }) => {
+      const raw = await anilistRequest<TasteStudiosByIdsRaw>(
+        SEARCH_TASTE_STUDIOS_BY_IDS_QUERY,
+        { ids: studioIds },
+        { signal },
+      );
+      return raw?.Page?.studios ?? [];
+    },
   });
 }
 

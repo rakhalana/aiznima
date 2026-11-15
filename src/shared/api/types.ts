@@ -268,6 +268,10 @@ export type StudioSort =
   | 'FAVOURITES'
   | 'FAVOURITES_DESC';
 
+export type SearchCharacterSort = CharacterSort | 'TASTE_MATCH';
+export type SearchStaffSort = StaffSort | 'TASTE_MATCH';
+export type SearchStudioSort = StudioSort | 'TASTE_MATCH';
+
 export type UserSort =
   | 'ID'
   | 'ID_DESC'
