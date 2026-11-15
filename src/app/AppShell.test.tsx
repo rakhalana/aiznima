@@ -79,9 +79,11 @@ describe('AppShell, AuthGuard & AuthCallback routes', () => {
         );
       }),
     );
+    vi.spyOn(window, 'scrollTo').mockImplementation(() => {});
   });
 
   afterEach(() => {
+    vi.restoreAllMocks();
     vi.unstubAllGlobals();
   });
 
@@ -156,5 +158,57 @@ describe('AppShell, AuthGuard & AuthCallback routes', () => {
   it('renders 404 NotFoundPage for unknown paths', () => {
     renderWithRoute('/does-not-exist');
     expect(screen.getByRole('heading', { name: /page not found/i })).toBeInTheDocument();
+  });
+
+  it('resets scroll position to top whenever navigating to a different route', () => {
+    const scrollToSpy = vi.spyOn(window, 'scrollTo');
+    scrollToSpy.mockClear();
+    document.documentElement.scrollTop = 320;
+    document.body.scrollTop = 180;
+
+    renderWithRoute('/');
+    expect(document.documentElement.scrollTop).toBe(0);
+    expect(document.body.scrollTop).toBe(0);
+    expect(scrollToSpy).toHaveBeenCalledWith({ top: 0, left: 0, behavior: 'auto' });
+
+    scrollToSpy.mockClear();
+    document.documentElement.scrollTop = 540;
+    document.body.scrollTop = 240;
+
+    fireEvent.click(screen.getAllByRole('link', { name: 'Search' })[0]!);
+    expect(document.documentElement.scrollTop).toBe(0);
+    expect(document.body.scrollTop).toBe(0);
+    expect(scrollToSpy).toHaveBeenCalledWith({ top: 0, left: 0, behavior: 'auto' });
+  });
+
+  it('renders desktop Floating Glass Top-Navbar with primary nav, utilities, and account controls', () => {
+    useAuthStore.setState({
+      accessToken: 'token-abc',
+      expiresAt: Date.now() + 60_000,
+      viewer: {
+        id: 1,
+        name: 'FrierenUser',
+        about: null,
+        avatar: null,
+        bannerImage: null,
+        siteUrl: null,
+        unreadNotificationCount: 4,
+        options: null,
+        mediaListOptions: null,
+        statistics: null,
+      },
+    });
+
+    renderWithRoute('/');
+
+    expect(screen.getByRole('navigation', { name: 'Primary navigation' })).toBeInTheDocument();
+    expect(screen.getByRole('navigation', { name: 'Mobile navigation' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /notifications/i })).toHaveAttribute(
+      'href',
+      '/notifications',
+    );
+    expect(screen.getByRole('link', { name: 'Settings' })).toHaveAttribute('href', '/settings');
+    expect(screen.getByRole('button', { name: /open profile for frierenuser/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Log out' })).toBeInTheDocument();
   });
 });

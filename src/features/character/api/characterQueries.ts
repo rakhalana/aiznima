@@ -28,6 +28,8 @@ const CHARACTER_DETAIL_QUERY = `
       age
       bloodType
       siteUrl
+      isFavourite
+      isFavouriteBlocked
     }
   }
 `;

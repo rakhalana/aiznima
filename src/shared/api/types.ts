@@ -42,6 +42,7 @@ export type MediaSort =
   | 'TRENDING_DESC'
   | 'UPDATED_AT_DESC'
   | 'SEARCH_MATCH'
+  | 'FAVOURITES'
   | 'FAVOURITES_DESC';
 
 export type MediaRelation =
@@ -119,8 +120,11 @@ export interface MediaExternalLink {
 export interface MediaTag {
   id: number;
   name: string;
+  category?: string | null;
   rank: number | null;
   isMediaSpoiler: boolean | null;
+  isGeneralSpoiler?: boolean | null;
+  isAdult?: boolean | null;
 }
 
 export interface NextAiringEpisode {
@@ -144,6 +148,17 @@ export interface MediaListEntrySummary {
   updatedAt: number | null;
 }
 
+export interface MediaRelationNodeSummary {
+  id: number;
+  type?: MediaType | null;
+  status?: MediaStatus | null;
+}
+
+export interface MediaRelationEdgeSummary {
+  relationType: MediaRelation | null;
+  node: MediaRelationNodeSummary | null;
+}
+
 export interface MediaSummary {
   id: number;
   idMal: number | null;
@@ -156,12 +171,27 @@ export interface MediaSummary {
   episodes: number | null;
   chapters: number | null;
   volumes: number | null;
+  duration?: number | null;
+  source?: string | null;
   season: MediaSeason | null;
   seasonYear: number | null;
+  startDate?: FuzzyDate | null;
   meanScore: number | null;
   weightedScore?: number | null;
   popularity: number | null;
   genres: string[];
+  tags?: MediaTag[];
+  studios?: {
+    edges?: MediaStudioEdge[];
+    nodes?: StudioSummary[];
+  } | null;
+  staff?: {
+    edges?: MediaStaffEdge[];
+    nodes?: StaffSummary[];
+  } | null;
+  relations?: {
+    edges: MediaRelationEdgeSummary[];
+  } | null;
   isAdult: boolean | null;
   nextAiringEpisode: NextAiringEpisode | null;
   mediaListEntry: MediaListEntrySummary | null;
@@ -260,6 +290,14 @@ export interface CharacterSummary {
     large: string | null;
   } | null;
   favourites?: number | null;
+  media?: {
+    nodes: Array<{
+      id: number;
+      type: MediaType | null;
+      isAdult?: boolean | null;
+      title: MediaTitle;
+    }>;
+  } | null;
 }
 
 export interface StaffSummary {
@@ -332,6 +370,8 @@ export interface MediaDetail extends MediaSummary {
   endDate: FuzzyDate | null;
   synonyms: string[];
   favourites: number | null;
+  isFavourite?: boolean;
+  isFavouriteBlocked?: boolean;
   trailer: MediaTrailer | null;
   tags: MediaTag[];
   studios: {
@@ -383,6 +423,8 @@ export interface CharacterDetail extends CharacterSummary {
   age: string | null;
   bloodType: string | null;
   siteUrl: string | null;
+  isFavourite?: boolean;
+  isFavouriteBlocked?: boolean;
 }
 
 export interface StaffCharacterMediaEdge {
@@ -423,6 +465,8 @@ export interface StaffDetail extends StaffSummary {
   homeTown: string | null;
   bloodType: string | null;
   siteUrl: string | null;
+  isFavourite?: boolean;
+  isFavouriteBlocked?: boolean;
 }
 
 export interface StudioMediaEdge {
@@ -433,6 +477,7 @@ export interface StudioMediaEdge {
 
 export interface StudioDetail extends StudioSummary {
   siteUrl: string | null;
+  isFavourite?: boolean;
 }
 
 export interface AiringScheduleItem {
@@ -461,13 +506,101 @@ export interface MediaListCollection {
   hasNextChunk: boolean | null;
 }
 
+export interface UserStatMetric {
+  count: number;
+  meanScore: number;
+  minutesWatched: number;
+  chaptersRead: number;
+  mediaIds: number[];
+}
+
+export interface UserFormatStatistic extends UserStatMetric {
+  format: MediaFormat | null;
+}
+
+export interface UserStatusStatistic extends UserStatMetric {
+  status: MediaListStatus | null;
+}
+
+export interface UserScoreStatistic {
+  score: number;
+  count: number;
+  minutesWatched: number;
+  chaptersRead: number;
+  mediaIds: number[];
+}
+
+export interface UserLengthStatistic extends UserStatMetric {
+  length: string | null;
+}
+
+export interface UserReleaseYearStatistic extends UserStatMetric {
+  releaseYear: number;
+}
+
+export interface UserCountryStatistic extends UserStatMetric {
+  country: string | null;
+}
+
+export interface UserGenreStatistic extends UserStatMetric {
+  genre: string;
+}
+
+export interface UserTagStatistic extends UserStatMetric {
+  tag: MediaTag | null;
+}
+
+export interface UserStudioStatistic {
+  count: number;
+  meanScore: number;
+  minutesWatched: number;
+  mediaIds: number[];
+  studio: StudioSummary | null;
+}
+
+export interface UserVoiceActorStatistic {
+  count: number;
+  meanScore: number;
+  minutesWatched: number;
+  mediaIds: number[];
+  voiceActor: StaffSummary | null;
+}
+
+export interface UserStaffStatistic extends UserStatMetric {
+  staff: StaffSummary | null;
+}
+
 export interface UserMediaStatistics {
   count: number;
   meanScore: number;
+  standardDeviation?: number | null;
   minutesWatched: number;
   episodesWatched: number;
   chaptersRead: number;
   volumesRead: number;
+}
+
+export interface UserMediaDeepStatistics extends UserMediaStatistics {
+  formats?: UserFormatStatistic[];
+  statuses?: UserStatusStatistic[];
+  scores?: UserScoreStatistic[];
+  lengths?: UserLengthStatistic[];
+  releaseYears?: UserReleaseYearStatistic[];
+  countries?: UserCountryStatistic[];
+  genres?: UserGenreStatistic[];
+  tags?: UserTagStatistic[];
+  studios?: UserStudioStatistic[];
+  voiceActors?: UserVoiceActorStatistic[];
+  staff?: UserStaffStatistic[];
+}
+
+export interface UserDeepStatisticsPayload {
+  id: number;
+  name: string;
+  statistics: {
+    anime: UserMediaDeepStatistics | null;
+    manga: UserMediaDeepStatistics | null;
+  } | null;
 }
 
 export interface UserOptions {

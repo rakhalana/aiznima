@@ -11,13 +11,17 @@ import { ListEntryCard } from '@/features/my-list/components/ListEntryCard';
 import {
   buildListTabs,
   filterListEntries,
+  sortListEntries,
+  type ListSortOption,
 } from '@/features/my-list/utils/collectionHelpers';
 import { NetworkError } from '@/shared/api/graphqlClient';
 import type {
+  MediaFormat,
   MediaListEntry,
   MediaType,
   ScoreFormat,
 } from '@/shared/api/types';
+import { SelectDropdown, type SelectOption } from '@/shared/components/SelectDropdown';
 import { MediaRowSkeleton } from '@/shared/components/Skeleton';
 import { EmptyState, ErrorState } from '@/shared/components/StateFeedback';
 import { ViewModeToggle } from '@/shared/components/ViewModeToggle';
@@ -25,7 +29,25 @@ import { usePreferredTitleLanguage } from '@/shared/hooks/usePreferredTitleLangu
 import { useAuthStore } from '@/shared/stores/useAuthStore';
 import { usePrefsStore } from '@/shared/stores/usePrefsStore';
 import { useToastStore } from '@/shared/stores/useToastStore';
-import { formatMediaTitle } from '@/shared/utils/formatters';
+import { formatMediaFormat, formatMediaTitle } from '@/shared/utils/formatters';
+
+const LIST_SORT_OPTIONS: Array<SelectOption<ListSortOption>> = [
+  { value: 'UPDATED_DESC', label: 'Recently Updated' },
+  { value: 'SCORE_DESC', label: 'Highest Score' },
+  { value: 'PROGRESS_DESC', label: 'Progress %' },
+  { value: 'TITLE_ASC', label: 'Title A–Z' },
+];
+
+const ANIME_FORMATS: MediaFormat[] = [
+  'TV',
+  'TV_SHORT',
+  'MOVIE',
+  'SPECIAL',
+  'OVA',
+  'ONA',
+  'MUSIC',
+];
+const MANGA_FORMATS: MediaFormat[] = ['MANGA', 'NOVEL', 'ONE_SHOT'];
 
 function MyListContent() {
   const navigate = useNavigate();
@@ -39,6 +61,9 @@ function MyListContent() {
   const [mediaType, setMediaType] = useState<MediaType>(initialType);
   const [selectedTab, setSelectedTab] = useState<string>('CURRENT');
   const [filterQuery, setFilterQuery] = useState('');
+  const [sortBy, setSortBy] = useState<ListSortOption>('UPDATED_DESC');
+  const [formatFilter, setFormatFilter] = useState<MediaFormat | ''>('');
+  const [airingBehindOnly, setAiringBehindOnly] = useState(false);
   const [editingEntry, setEditingEntry] = useState<MediaListEntry | null>(null);
 
   const { data, isLoading, isError, error, refetch } = useMyListQuery(
@@ -55,10 +80,38 @@ function MyListContent() {
   const activeTabGroup =
     tabs.find((tab) => tab.key === selectedTab) ?? tabs[0]!;
 
-  const visibleEntries = useMemo(
-    () => filterListEntries(activeTabGroup?.entries ?? [], filterQuery),
-    [activeTabGroup, filterQuery],
+  const formatOptions = useMemo<Array<SelectOption<MediaFormat | ''>>>(
+    () => [
+      { value: '', label: 'All Formats' },
+      ...(mediaType === 'ANIME' ? ANIME_FORMATS : MANGA_FORMATS).map((format) => ({
+        value: format,
+        label: formatMediaFormat(format),
+      })),
+    ],
+    [mediaType],
   );
+
+  const hasActiveFilters =
+    filterQuery.trim().length > 0 ||
+    formatFilter !== '' ||
+    (mediaType === 'ANIME' && airingBehindOnly);
+
+  const visibleEntries = useMemo(() => {
+    const filtered = filterListEntries(activeTabGroup?.entries ?? [], {
+      query: filterQuery,
+      format: formatFilter,
+      airingBehindOnly: mediaType === 'ANIME' && airingBehindOnly,
+    });
+    return sortListEntries(filtered, sortBy, preferredLanguage);
+  }, [
+    activeTabGroup,
+    filterQuery,
+    formatFilter,
+    mediaType,
+    airingBehindOnly,
+    sortBy,
+    preferredLanguage,
+  ]);
 
   const scoreFormat: ScoreFormat = viewer?.mediaListOptions?.scoreFormat ?? 'POINT_100';
 
@@ -127,6 +180,8 @@ function MyListContent() {
               onClick={() => {
                 setMediaType(type);
                 setSelectedTab('CURRENT');
+                setFormatFilter('');
+                setAiringBehindOnly(false);
               }}
               className={`rounded-lg px-3.5 py-1.5 text-xs font-semibold transition-crisp ${
                 mediaType === type
@@ -140,11 +195,11 @@ function MyListContent() {
         </div>
       </header>
 
-      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+      <div className="space-y-3 md:rounded-2xl md:border md:border-[var(--border-hairline)] md:bg-[var(--bg-surface)]/85 md:p-3.5 md:shadow-token-xs">
         <div
           role="tablist"
           aria-label="List status filter"
-          className="no-scrollbar flex gap-1.5 overflow-x-auto pb-1"
+          className="no-scrollbar flex gap-1.5 overflow-x-auto pb-1 md:flex-wrap md:overflow-visible md:pb-0"
         >
           {tabs.map((tab) => {
             const active = activeTabGroup?.key === tab.key;
@@ -170,8 +225,8 @@ function MyListContent() {
           })}
         </div>
 
-        <div className="flex w-full items-center gap-2 md:w-auto">
-          <div className="relative flex-1 md:w-64">
+        <div className="flex flex-wrap items-center gap-2 md:gap-2.5 md:border-t md:border-[var(--border-hairline)] md:pt-3 lg:flex-nowrap lg:justify-between">
+          <div className="relative min-w-[200px] flex-1">
             <SearchIcon
               className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--text-muted)]"
               strokeWidth={1.75}
@@ -187,13 +242,50 @@ function MyListContent() {
             />
           </div>
 
-          <ViewModeToggle
-            mode={listViewMode}
-            onToggle={() =>
-              void setListViewMode(listViewMode === 'grid' ? 'list' : 'grid')
-            }
-            size="sm"
-          />
+          <div className="flex flex-wrap items-center gap-2 md:ml-auto lg:shrink-0">
+            <SelectDropdown
+              ariaLabel="Sort list entries"
+              size="sm"
+              surface="surface"
+              value={sortBy}
+              options={LIST_SORT_OPTIONS}
+              onChange={(nextSort) => setSortBy(nextSort)}
+              className="min-w-[156px]"
+            />
+
+            <SelectDropdown
+              ariaLabel="Filter by format"
+              size="sm"
+              surface="surface"
+              value={formatFilter}
+              options={formatOptions}
+              onChange={(nextFormat) => setFormatFilter(nextFormat)}
+              className="min-w-[132px]"
+            />
+
+            {mediaType === 'ANIME' ? (
+              <button
+                type="button"
+                aria-pressed={airingBehindOnly}
+                onClick={() => setAiringBehindOnly((prev) => !prev)}
+                className={`min-h-9 shrink-0 rounded-[10px] border px-3 py-1.5 text-xs font-semibold transition-crisp ${
+                  airingBehindOnly
+                    ? 'border-[var(--accent-primary)] bg-[var(--accent-soft)] text-[var(--accent-ink)]'
+                    : 'border-[var(--border-hairline)] bg-[var(--bg-surface)] text-[var(--text-secondary)] hover:border-[var(--border-strong)]'
+                }`}
+              >
+                Airing / Behind
+              </button>
+            ) : null}
+
+            <ViewModeToggle
+              mode={listViewMode}
+              onToggle={() =>
+                void setListViewMode(listViewMode === 'grid' ? 'list' : 'grid')
+              }
+              size="sm"
+            />
+          </div>
         </div>
       </div>
 
@@ -222,15 +314,21 @@ function MyListContent() {
       {!isLoading && data && visibleEntries.length === 0 ? (
         <EmptyState
           icon={<Bookmark className="h-6 w-6" strokeWidth={1.75} />}
-          title={filterQuery.trim() ? 'No matching entries' : 'Your list is empty'}
+          title={hasActiveFilters ? 'No matching entries' : 'Your list is empty'}
           description={
-            filterQuery.trim()
-              ? 'No entries in this tab match your filter.'
+            hasActiveFilters
+              ? 'No entries in this tab match your current filters.'
               : 'Explore trending titles on Discover to add your first entry.'
           }
-          actionLabel={filterQuery.trim() ? 'Clear Filter' : 'Browse Discover'}
+          actionLabel={hasActiveFilters ? 'Clear Filters' : 'Browse Discover'}
           onAction={
-            filterQuery.trim() ? () => setFilterQuery('') : () => navigate('/')
+            hasActiveFilters
+              ? () => {
+                  setFilterQuery('');
+                  setFormatFilter('');
+                  setAiringBehindOnly(false);
+                }
+              : () => navigate('/')
           }
         />
       ) : null}

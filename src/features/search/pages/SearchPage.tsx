@@ -15,6 +15,7 @@ import { FilterSheet } from '@/features/search/components/FilterSheet';
 import { StaffCard } from '@/features/search/components/StaffCard';
 import { StudioCard } from '@/features/search/components/StudioCard';
 import { UserCard } from '@/features/search/components/UserCard';
+import { getSearchCardHint } from '@/features/search/utils/searchHelpers';
 import { NetworkError } from '@/shared/api/graphqlClient';
 import type {
   CharacterSort,
@@ -42,13 +43,13 @@ const SEARCH_TABS: Array<{
   label: string;
   placeholder: string;
 }> = [
-  { type: 'ANIME', label: 'Anime', placeholder: 'Search anime titles... (press /)' },
-  { type: 'MANGA', label: 'Manga', placeholder: 'Search manga titles... (press /)' },
-  { type: 'CHARACTER', label: 'Character', placeholder: 'Search characters... (press /)' },
-  { type: 'STAFF', label: 'Staff', placeholder: 'Search staff & voice actors... (press /)' },
-  { type: 'STUDIO', label: 'Studios', placeholder: 'Search animation studios... (press /)' },
-  { type: 'USER', label: 'Users', placeholder: 'Search AniList usernames... (press /)' },
-];
+    { type: 'ANIME', label: 'Anime', placeholder: 'Search anime titles... ' },
+    { type: 'MANGA', label: 'Manga', placeholder: 'Search manga titles... ' },
+    { type: 'CHARACTER', label: 'Character', placeholder: 'Search characters... ' },
+    { type: 'STAFF', label: 'Staff', placeholder: 'Search staff & voice actors... ' },
+    { type: 'STUDIO', label: 'Studios', placeholder: 'Search animation studios... ' },
+    { type: 'USER', label: 'Users', placeholder: 'Search AniList usernames... ' },
+  ];
 
 const VALID_ENTITY_TYPES = new Set<SearchEntityType>([
   'ANIME',
@@ -79,6 +80,7 @@ function parseFiltersFromParams(params: URLSearchParams): SearchFilters {
     const rawYear = Number.parseInt(params.get('year') ?? '', 10);
     const rawGenres = params.get('genre');
     const rawTags = params.get('tag');
+    const rawTagCategories = params.get('tagCategory');
     return {
       ...base,
       format: (params.get('format') as MediaFormat) || undefined,
@@ -87,6 +89,7 @@ function parseFiltersFromParams(params: URLSearchParams): SearchFilters {
       year: !Number.isNaN(rawYear) && rawYear > 0 ? rawYear : undefined,
       genres: rawGenres ? rawGenres.split(',').filter(Boolean) : [],
       tags: rawTags ? rawTags.split(',').filter(Boolean) : [],
+      tagCategories: rawTagCategories ? rawTagCategories.split(',').filter(Boolean) : [],
       sort: (rawSort as MediaSort) || 'TRENDING_DESC',
     };
   }
@@ -134,6 +137,9 @@ function serializeFilters(filters: SearchFilters): URLSearchParams {
     if (filters.year) next.set('year', String(filters.year));
     if (filters.genres.length > 0) next.set('genre', filters.genres.join(','));
     if (filters.tags.length > 0) next.set('tag', filters.tags.join(','));
+    if (filters.tagCategories.length > 0) {
+      next.set('tagCategory', filters.tagCategories.join(','));
+    }
     if (filters.sort !== 'TRENDING_DESC') next.set('sort', filters.sort);
   } else if (filters.type === 'CHARACTER') {
     if (filters.characterSort !== 'FAVOURITES_DESC') next.set('sort', filters.characterSort);
@@ -161,6 +167,7 @@ function countActiveFilters(filters: SearchFilters): number {
       (filters.year ? 1 : 0) +
       filters.genres.length +
       filters.tags.length +
+      filters.tagCategories.length +
       (filters.sort !== 'TRENDING_DESC' ? 1 : 0)
     );
   }
@@ -336,11 +343,10 @@ export function SearchPage() {
                 type="button"
                 aria-selected={urlFilters.type === tab.type}
                 onClick={() => handleSwitchType(tab.type)}
-                className={`flex-auto whitespace-nowrap rounded-lg px-1.5 py-1.5 text-center text-[11px] font-semibold transition-crisp sm:px-3 sm:text-xs ${
-                  urlFilters.type === tab.type
+                className={`flex-auto whitespace-nowrap rounded-lg px-1.5 py-1.5 text-center text-[11px] font-semibold transition-crisp sm:px-3 sm:text-xs ${urlFilters.type === tab.type
                     ? 'bg-[var(--bg-surface)] text-[var(--text-primary)] shadow-token-xs'
                     : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
-                }`}
+                  }`}
               >
                 {tab.label}
               </button>
@@ -447,9 +453,9 @@ export function SearchPage() {
       ) : null}
 
       {!needsUserSearchPrompt &&
-      !activeQuery.isLoading &&
-      activeQuery.data &&
-      resultCount === 0 ? (
+        !activeQuery.isLoading &&
+        activeQuery.data &&
+        resultCount === 0 ? (
         <EmptyState
           icon={<SearchIcon className="h-6 w-6" strokeWidth={1.75} />}
           title="No results found"
@@ -468,6 +474,12 @@ export function SearchPage() {
                   key={item.id}
                   media={item}
                   preferredLanguage={preferredLanguage}
+                  subtitleHint={getSearchCardHint(
+                    item,
+                    urlFilters.search,
+                    preferredLanguage,
+                    item.matchedCharacterName,
+                  )}
                   layout={searchViewMode}
                   onSelect={(media) => navigate(`/media/${media.id}`)}
                 />
@@ -481,6 +493,8 @@ export function SearchPage() {
                 <CharacterCard
                   key={character.id}
                   character={character}
+                  preferredLanguage={preferredLanguage}
+                  allowAdult={allowAdult}
                   layout={searchViewMode}
                   onSelect={(c) => navigate(`/character/${c.id}`)}
                 />

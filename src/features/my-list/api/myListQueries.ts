@@ -41,8 +41,20 @@ const MEDIA_LIST_ENTRY_FIELDS = `
 `;
 
 export const MEDIA_LIST_COLLECTION_QUERY = `
-  query UserMediaListCollection($userId: Int, $userName: String, $type: MediaType!) {
-    MediaListCollection(userId: $userId, userName: $userName, type: $type) {
+  query UserMediaListCollection(
+    $userId: Int
+    $userName: String
+    $type: MediaType!
+    $chunk: Int
+    $perChunk: Int
+  ) {
+    MediaListCollection(
+      userId: $userId
+      userName: $userName
+      type: $type
+      chunk: $chunk
+      perChunk: $perChunk
+    ) {
       hasNextChunk
       lists {
         name
@@ -116,19 +128,92 @@ export function publicUserListQueryKey(username: string, type: MediaType) {
   return ['public-user-list', username.toLowerCase(), type] as const;
 }
 
+const MAX_COLLECTION_CHUNKS = 20;
+
+function mergeMediaListChunks(chunks: MediaListCollection[]): MediaListCollection {
+  if (chunks.length === 1) {
+    return chunks[0];
+  }
+
+  const groupMap = new Map<
+    string,
+    {
+      group: MediaListCollection['lists'][number];
+      seenIds: Set<number>;
+    }
+  >();
+
+  for (const chunk of chunks) {
+    for (const group of chunk.lists) {
+      const key = `${group.isCustomList ? 'custom' : (group.status ?? '')}::${group.name}`;
+      let bucket = groupMap.get(key);
+      if (!bucket) {
+        bucket = {
+          group: {
+            ...group,
+            entries: [],
+          },
+          seenIds: new Set<number>(),
+        };
+        groupMap.set(key, bucket);
+      }
+
+      for (const entry of group.entries) {
+        if (!bucket.seenIds.has(entry.id)) {
+          bucket.seenIds.add(entry.id);
+          bucket.group.entries.push(entry);
+        }
+      }
+    }
+  }
+
+  return {
+    hasNextChunk: false,
+    lists: Array.from(groupMap.values(), (b) => b.group),
+  };
+}
+
+async function fetchAllMediaListChunks(
+  baseVariables: { userId?: number; userName?: string; type: MediaType },
+  signal?: AbortSignal,
+): Promise<MediaListCollection> {
+  const first = await anilistRequest<MediaListCollectionRaw>(
+    MEDIA_LIST_COLLECTION_QUERY,
+    baseVariables,
+    { signal },
+  );
+
+  if (!first?.MediaListCollection) {
+    return { hasNextChunk: false, lists: [] };
+  }
+
+  const chunks: MediaListCollection[] = [first.MediaListCollection];
+  let hasNext = first.MediaListCollection.hasNextChunk;
+  let nextChunk = 2;
+
+  while (hasNext && nextChunk <= MAX_COLLECTION_CHUNKS) {
+    const raw = await anilistRequest<MediaListCollectionRaw>(
+      MEDIA_LIST_COLLECTION_QUERY,
+      { ...baseVariables, chunk: nextChunk },
+      { signal },
+    );
+    if (!raw?.MediaListCollection) {
+      break;
+    }
+    chunks.push(raw.MediaListCollection);
+    hasNext = raw.MediaListCollection.hasNextChunk;
+    nextChunk += 1;
+  }
+
+  return mergeMediaListChunks(chunks);
+}
+
 export function useMyListQuery(userId: number | undefined, type: MediaType) {
   return useQuery({
     queryKey: myListQueryKey(userId, type),
     enabled: Boolean(userId),
     staleTime: 2 * 60 * 1000,
-    queryFn: async ({ signal }) => {
-      const raw = await anilistRequest<MediaListCollectionRaw>(
-        MEDIA_LIST_COLLECTION_QUERY,
-        { userId, type },
-        { signal },
-      );
-      return raw.MediaListCollection;
-    },
+    queryFn: ({ signal }) => fetchAllMediaListChunks({ userId, type }, signal),
   });
 }
 
@@ -141,14 +226,7 @@ export function usePublicUserListQuery(
     queryKey: publicUserListQueryKey(userName ?? '', type),
     enabled: Boolean(userName && enabled),
     staleTime: 5 * 60 * 1000,
-    queryFn: async ({ signal }) => {
-      const raw = await anilistRequest<MediaListCollectionRaw>(
-        MEDIA_LIST_COLLECTION_QUERY,
-        { userName, type },
-        { signal },
-      );
-      return raw.MediaListCollection;
-    },
+    queryFn: ({ signal }) => fetchAllMediaListChunks({ userName, type }, signal),
   });
 }
 
@@ -195,7 +273,7 @@ function syncMediaDetailCache(
   entry: MediaListEntry | null,
 ): void {
   queryClient.setQueryData<MediaDetail | undefined>(
-    ['media-detail', mediaId],
+    ['media', mediaId],
     (prev) => {
       if (!prev) return prev;
       return {
@@ -253,6 +331,8 @@ export function useUpdateProgressMutation(userId: number | undefined, type: Medi
       syncMediaDetailCache(queryClient, saved.mediaId, saved);
       void queryClient.invalidateQueries({ queryKey: ['my-list'] });
       void queryClient.invalidateQueries({ queryKey: ['viewer'] });
+      void queryClient.invalidateQueries({ queryKey: ['discover'] });
+      void queryClient.invalidateQueries({ queryKey: ['search'] });
     },
   });
 }
@@ -272,6 +352,8 @@ export function useSaveMediaListEntryMutation() {
       syncMediaDetailCache(queryClient, saved.mediaId, saved);
       void queryClient.invalidateQueries({ queryKey: ['my-list'] });
       void queryClient.invalidateQueries({ queryKey: ['viewer'] });
+      void queryClient.invalidateQueries({ queryKey: ['discover'] });
+      void queryClient.invalidateQueries({ queryKey: ['search'] });
     },
   });
 }
@@ -297,6 +379,8 @@ export function useDeleteMediaListEntryMutation() {
       syncMediaDetailCache(queryClient, vars.mediaId, null);
       void queryClient.invalidateQueries({ queryKey: ['my-list'] });
       void queryClient.invalidateQueries({ queryKey: ['viewer'] });
+      void queryClient.invalidateQueries({ queryKey: ['discover'] });
+      void queryClient.invalidateQueries({ queryKey: ['search'] });
     },
   });
 }

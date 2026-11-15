@@ -28,6 +28,8 @@ const MEDIA_DETAIL_QUERY = `
       }
       synonyms
       favourites
+      isFavourite
+      isFavouriteBlocked
       trailer {
         id
         site

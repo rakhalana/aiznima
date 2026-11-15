@@ -1,7 +1,11 @@
 import { useMemo, useState } from 'react';
 import { ArrowLeft, Lock, Search, UserX } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { usePublicUserListQuery } from '@/features/my-list/api/myListQueries';
+import { useLoginPromptStore } from '@/features/auth/stores/useLoginPromptStore';
+import {
+  useMyListQuery,
+  usePublicUserListQuery,
+} from '@/features/my-list/api/myListQueries';
 import { ListEntryCard } from '@/features/my-list/components/ListEntryCard';
 import { buildListTabs } from '@/features/my-list/utils/collectionHelpers';
 import {
@@ -10,6 +14,8 @@ import {
   usePublicUserQuery,
 } from '@/features/profile/api/profileQueries';
 import { ProfileHeaderAndStats } from '@/features/profile/components/ProfileHeaderAndStats';
+import { CompatibilityCard } from '@/features/user/components/CompatibilityCard';
+import { computeUserCompatibility } from '@/features/user/utils/compatibilityEngine';
 import { NetworkError } from '@/shared/api/graphqlClient';
 import type { MediaType, ScoreFormat } from '@/shared/api/types';
 import { Button } from '@/shared/components/Button';
@@ -17,12 +23,16 @@ import { DetailSkeleton, MediaRowSkeleton } from '@/shared/components/Skeleton';
 import { EmptyState, ErrorState } from '@/shared/components/StateFeedback';
 import { useIsAdultFilter } from '@/shared/hooks/useIsAdultFilter';
 import { usePreferredTitleLanguage } from '@/shared/hooks/usePreferredTitleLanguage';
+import { useAuthStore } from '@/shared/stores/useAuthStore';
 
 export function PublicUserPage() {
   const { username = '' } = useParams<{ username: string }>();
   const navigate = useNavigate();
   const { allowAdult } = useIsAdultFilter();
   const preferredLanguage = usePreferredTitleLanguage();
+  const accessToken = useAuthStore((state) => state.accessToken);
+  const viewer = useAuthStore((state) => state.viewer);
+  const openLoginPrompt = useLoginPromptStore((state) => state.openLoginPrompt);
 
   const [listType, setListType] = useState<MediaType>('ANIME');
   const [selectedTab, setSelectedTab] = useState<string>('ALL');
@@ -35,6 +45,14 @@ export function PublicUserPage() {
     refetch,
   } = usePublicUserQuery(username);
 
+  const isAuthenticated = Boolean(accessToken && viewer?.id);
+  const isOwnProfile = Boolean(
+    viewer &&
+      publicUser &&
+      (viewer.id === publicUser.id ||
+        viewer.name.toLowerCase() === publicUser.name.toLowerCase()),
+  );
+
   const {
     data: listCollection,
     isLoading: listLoading,
@@ -42,6 +60,39 @@ export function PublicUserPage() {
     error: listError,
     refetch: refetchList,
   } = usePublicUserListQuery(publicUser?.name, listType, Boolean(publicUser?.name));
+
+  const viewerListQuery = useMyListQuery(
+    isAuthenticated && publicUser && !isOwnProfile && !listIsError
+      ? viewer?.id
+      : undefined,
+    listType,
+  );
+
+  const viewerScoreFormat: ScoreFormat =
+    viewer?.mediaListOptions?.scoreFormat ?? 'POINT_100';
+
+  const compatibility = useMemo(() => {
+    if (!isAuthenticated || isOwnProfile || !listCollection || !viewerListQuery.data) {
+      return null;
+    }
+    return computeUserCompatibility({
+      mediaType: listType,
+      viewerCollection: viewerListQuery.data,
+      targetCollection: listCollection,
+      viewerScoreFormat,
+      targetScoreFormat: publicUser?.mediaListOptions?.scoreFormat ?? 'POINT_100',
+      allowAdult,
+    });
+  }, [
+    isAuthenticated,
+    isOwnProfile,
+    listCollection,
+    viewerListQuery.data,
+    listType,
+    viewerScoreFormat,
+    publicUser?.mediaListOptions?.scoreFormat,
+    allowAdult,
+  ]);
 
   const tabs = useMemo(
     () => buildListTabs(listCollection, listType, false),
@@ -161,6 +212,26 @@ export function PublicUserPage() {
           </div>
         </div>
 
+        {!isOwnProfile && !listIsError ? (
+          <CompatibilityCard
+            targetName={publicUser.name}
+            mediaType={listType}
+            isAuthenticated={isAuthenticated}
+            isLoading={listLoading || viewerListQuery.isLoading}
+            compatibility={compatibility}
+            viewerScoreFormat={viewerScoreFormat}
+            targetScoreFormat={scoreFormat}
+            preferredLanguage={preferredLanguage}
+            onLoginClick={() =>
+              openLoginPrompt(
+                `Log in with AniList to compare your taste compatibility with ${publicUser.name}.`,
+                `/user/${encodeURIComponent(publicUser.name)}`,
+              )
+            }
+            onSelectMedia={(mediaId) => navigate(`/media/${mediaId}`)}
+          />
+        ) : null}
+
         {listLoading && !listCollection ? (
           <div className="grid grid-cols-2 gap-2.5 md:gap-3.5 lg:grid-cols-3">
             {Array.from({ length: 4 }).map((_, idx) => (
@@ -186,7 +257,7 @@ export function PublicUserPage() {
         ) : (
           <>
             {tabs.length > 1 ? (
-              <div className="no-scrollbar flex gap-1.5 overflow-x-auto pb-1">
+              <div className="no-scrollbar flex gap-1.5 overflow-x-auto pb-1 md:flex-wrap md:overflow-visible md:pb-0">
                 {tabs.map((tab) => {
                   const active = activeTabGroup?.key === tab.key;
                   return (

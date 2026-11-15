@@ -8,6 +8,7 @@ import {
 import { NetworkError } from '@/shared/api/graphqlClient';
 import type { MediaSort } from '@/shared/api/types';
 import { Button } from '@/shared/components/Button';
+import { DetailTopBar } from '@/shared/components/DetailTopBar';
 import { EntityDetailHero } from '@/shared/components/EntityDetailHero';
 import { MediaCard } from '@/shared/components/MediaCard';
 import { DetailSkeleton, MediaCardSkeleton } from '@/shared/components/Skeleton';
@@ -75,24 +76,35 @@ export function StudioDetailPage() {
     mediaQuery.data?.pages.flatMap((page) => page.Studio?.media.edges ?? []) ?? [];
   const visibleEdges = allEdges.filter((edge) => edge.node && (allowAdult || !edge.node.isAdult));
 
+  const shareUrl = studio.siteUrl ?? `https://anilist.co/studio/${studio.id}`;
+
   return (
-    <div className="space-y-5 md:space-y-6">
-      <EntityDetailHero
-        title={studio.name}
-        favourites={studio.favourites}
-        siteUrl={studio.siteUrl}
-        badges={
-          <span className="inline-flex items-center gap-1 rounded-md bg-[var(--accent-soft)] px-2 py-0.5 text-[var(--accent-ink)]">
-            <Building2 className="h-3 w-3" strokeWidth={1.75} aria-hidden="true" />
-            {studio.isAnimationStudio ? 'Animation Studio' : 'Producer'}
-          </span>
-        }
-        metaItems={
-          typeof totalCount === 'number'
-            ? [{ label: 'Listed Titles', value: String(totalCount) }]
-            : []
-        }
-      />
+    <div className="flex flex-col">
+      <DetailTopBar onBack={() => navigate(-1)} shareUrl={shareUrl} />
+
+      <div className="space-y-5 md:space-y-6">
+        <EntityDetailHero
+          title={studio.name}
+          favourites={studio.favourites}
+          siteUrl={studio.siteUrl}
+          favoriteTarget={{
+            kind: 'STUDIO',
+            id: studio.id,
+            returnTo: `/studio/${studio.id}`,
+            isFavourite: Boolean(studio.isFavourite),
+          }}
+          badges={
+            <span className="inline-flex items-center gap-1 rounded-md bg-[var(--accent-soft)] px-2 py-0.5 text-[var(--accent-ink)]">
+              <Building2 className="h-3 w-3" strokeWidth={1.75} aria-hidden="true" />
+              {studio.isAnimationStudio ? 'Animation Studio' : 'Producer'}
+            </span>
+          }
+          metaItems={
+            typeof totalCount === 'number'
+              ? [{ label: 'Listed Titles', value: String(totalCount) }]
+              : []
+          }
+        />
 
       <section className="space-y-3">
         <div className="flex flex-wrap items-center justify-between gap-2.5">
@@ -200,6 +212,7 @@ export function StudioDetailPage() {
           </>
         )}
       </section>
+      </div>
     </div>
   );
 }

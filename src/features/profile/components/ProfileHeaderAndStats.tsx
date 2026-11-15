@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { BookOpen, Edit3, ExternalLink, Film } from 'lucide-react';
 import { openExternalUrl } from '@/platform';
 import type {
@@ -15,6 +15,8 @@ interface ProfileHeaderAndStatsProps {
   preferredLanguage: UserTitleLanguage;
   allowAdult: boolean;
   canEdit?: boolean;
+  middleSlot?: ReactNode;
+  hideOverviewBody?: boolean;
   onEdit?: () => void;
   onSelectMedia: (media: MediaSummary) => void;
 }
@@ -24,12 +26,15 @@ export function ProfileHeaderAndStats({
   preferredLanguage,
   allowAdult,
   canEdit = false,
+  middleSlot = null,
+  hideOverviewBody = false,
   onEdit,
   onSelectMedia,
 }: ProfileHeaderAndStatsProps) {
   const [avatarFailed, setAvatarFailed] = useState(false);
 
   const avatarUrl = user.avatar?.large || user.avatar?.medium;
+  const artworkBackdropUrl = user.bannerImage || (!avatarFailed ? avatarUrl : null);
   const cleanAbout = sanitizeHtml(user.about);
   const animeStats = user.statistics?.anime;
   const mangaStats = user.statistics?.manga;
@@ -47,19 +52,42 @@ export function ProfileHeaderAndStats({
 
   return (
     <div className="space-y-4 md:space-y-6">
-      <section className="overflow-hidden rounded-2xl border border-[var(--border-hairline)] bg-[var(--bg-surface)] shadow-token-xs">
+      <section className="glass-artwork-card relative overflow-hidden rounded-2xl">
+        {artworkBackdropUrl ? (
+          <div
+            aria-hidden="true"
+            className={`glass-ambient-artwork pointer-events-none absolute inset-x-0 bottom-0 hidden overflow-hidden md:block ${
+              user.bannerImage ? 'top-28' : 'top-0'
+            }`}
+          >
+            <img
+              src={artworkBackdropUrl}
+              alt=""
+              onError={(e) => {
+                e.currentTarget.style.display = 'none';
+              }}
+              className="h-full w-full scale-110 object-cover opacity-[0.12] blur-2xl saturate-150 dark:opacity-[0.18]"
+            />
+            <div className="absolute inset-0 bg-gradient-to-b from-[var(--bg-surface)]/25 via-[var(--bg-surface)]/55 to-[var(--bg-surface)]/92" />
+          </div>
+        ) : null}
+
         {user.bannerImage ? (
-          <div className="h-28 w-full overflow-hidden bg-[var(--bg-subtle)] sm:h-32 md:h-44">
+          <div className="relative z-10 h-28 w-full overflow-hidden bg-[var(--bg-subtle)] sm:h-32 md:h-44">
             <img
               src={user.bannerImage}
               alt=""
               aria-hidden="true"
               className="h-full w-full object-cover"
             />
+            <div
+              aria-hidden="true"
+              className="pointer-events-none absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-black/20 to-transparent"
+            />
           </div>
         ) : null}
 
-        <div className="flex flex-col gap-3.5 p-3.5 sm:flex-row sm:items-end sm:justify-between md:p-6">
+        <div className="relative z-10 flex flex-col gap-3.5 p-3.5 sm:flex-row sm:items-end sm:justify-between md:p-6">
           <div className="flex items-end gap-4">
             <div
               className={`flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-2xl border-2 border-[var(--bg-surface)] bg-[var(--accent-soft)] text-xl font-bold text-[var(--accent-ink)] shadow-token-sm ${
@@ -109,13 +137,17 @@ export function ProfileHeaderAndStats({
 
         {cleanAbout ? (
           <div
-            className="border-t border-[var(--border-hairline)] px-4 py-3 text-sm leading-relaxed text-[var(--text-secondary)] md:px-6 [&_a]:text-[var(--accent-primary)] [&_a]:underline"
+            className="relative z-10 border-t border-[var(--border-hairline)] px-4 py-3 text-sm leading-relaxed text-[var(--text-secondary)] md:px-6 [&_a]:text-[var(--accent-primary)] [&_a]:underline"
             dangerouslySetInnerHTML={{ __html: cleanAbout }}
           />
         ) : null}
       </section>
 
-      <div className="grid grid-cols-1 gap-3 md:grid-cols-2 md:gap-4">
+      {middleSlot}
+
+      {!hideOverviewBody ? (
+        <>
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2 md:gap-4">
         <section className="rounded-xl border border-[var(--border-hairline)] bg-[var(--bg-surface)] p-3.5 shadow-token-xs sm:p-4">
           <div className="mb-3 flex items-center gap-2">
             <Film className="h-4 w-4 text-[var(--accent-primary)]" strokeWidth={1.75} />
@@ -237,6 +269,8 @@ export function ProfileHeaderAndStats({
             ))}
           </div>
         </section>
+      ) : null}
+        </>
       ) : null}
     </div>
   );

@@ -259,19 +259,30 @@ export function ListEditorModal({
           )}
         </div>
 
-        <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 sm:gap-3">
-          <div className="col-span-2 space-y-1 text-xs font-semibold text-[var(--text-secondary)] sm:col-span-1">
-            <label htmlFor="editor-progress">
+        <div
+          className={
+            media.type === 'MANGA'
+              ? 'grid grid-cols-2 items-end gap-2.5 sm:grid-cols-3 sm:gap-3'
+              : 'grid grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)] items-end gap-2.5 sm:grid-cols-2 sm:gap-3'
+          }
+        >
+          <div
+            className={`min-w-0 flex flex-col gap-1.5 text-xs font-semibold text-[var(--text-secondary)] ${
+              media.type === 'MANGA' ? 'col-span-2 sm:col-span-1' : ''
+            }`}
+          >
+            <label htmlFor="editor-progress" className="truncate">
               {media.type === 'MANGA' ? 'Chapters' : 'Episodes'}{' '}
               {maxProgress ? `(of ${maxProgress})` : ''}
             </label>
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-1">
               <Button
                 type="button"
                 variant="secondary"
                 size="sm"
                 aria-label="Decrease progress"
                 onClick={() => setProgress((prev) => Math.max(0, prev - 1))}
+                className="h-10 w-9 shrink-0 px-0!"
               >
                 -
               </Button>
@@ -286,7 +297,7 @@ export function ListEditorModal({
                   const next = Number.isNaN(val) ? 0 : Math.max(0, val);
                   setProgress(maxProgress ? Math.min(maxProgress, next) : next);
                 }}
-                className="tabular-nums min-h-9 w-full rounded-[10px] border border-[var(--border-hairline)] bg-[var(--bg-canvas)] px-2 text-center text-sm text-[var(--text-primary)]"
+                className="tabular-nums h-10 min-w-0 flex-1 rounded-[10px] border border-[var(--border-hairline)] bg-[var(--bg-canvas)] px-2 text-center text-sm text-[var(--text-primary)]"
               />
               <Button
                 type="button"
@@ -298,6 +309,7 @@ export function ListEditorModal({
                     maxProgress ? Math.min(maxProgress, prev + 1) : prev + 1,
                   )
                 }
+                className="h-10 w-9 shrink-0 px-0!"
               >
                 +
               </Button>
@@ -305,8 +317,8 @@ export function ListEditorModal({
           </div>
 
           {media.type === 'MANGA' ? (
-            <label className="space-y-1 text-xs font-semibold text-[var(--text-secondary)]">
-              <span>Volumes</span>
+            <label className="min-w-0 flex flex-col gap-1.5 text-xs font-semibold text-[var(--text-secondary)]">
+              <span className="truncate">Volumes</span>
               <input
                 type="number"
                 min={0}
@@ -316,13 +328,15 @@ export function ListEditorModal({
                   const val = Number.parseInt(e.target.value, 10);
                   setProgressVolumes(Number.isNaN(val) ? 0 : Math.max(0, val));
                 }}
-                className="tabular-nums min-h-9 w-full rounded-[10px] border border-[var(--border-hairline)] bg-[var(--bg-canvas)] px-3 text-sm text-[var(--text-primary)]"
+                className="tabular-nums h-10 w-full rounded-[10px] border border-[var(--border-hairline)] bg-[var(--bg-canvas)] px-3 text-sm text-[var(--text-primary)]"
               />
             </label>
           ) : null}
 
-          <label className="space-y-1 text-xs font-semibold text-[var(--text-secondary)]">
-            <span>{media.type === 'MANGA' ? 'Total Rereads' : 'Total Rewatches'}</span>
+          <label className="min-w-0 flex flex-col gap-1.5 text-xs font-semibold text-[var(--text-secondary)]">
+            <span className="truncate">
+              {media.type === 'MANGA' ? 'Total Rereads' : 'Total Rewatches'}
+            </span>
             <input
               type="number"
               min={0}
@@ -331,29 +345,29 @@ export function ListEditorModal({
                 const val = Number.parseInt(e.target.value, 10);
                 setRepeat(Number.isNaN(val) ? 0 : Math.max(0, val));
               }}
-              className="tabular-nums min-h-9 w-full rounded-[10px] border border-[var(--border-hairline)] bg-[var(--bg-canvas)] px-3 text-sm text-[var(--text-primary)]"
+              className="tabular-nums h-10 w-full rounded-[10px] border border-[var(--border-hairline)] bg-[var(--bg-canvas)] px-3 text-sm text-[var(--text-primary)]"
             />
           </label>
         </div>
 
         <div className="grid grid-cols-2 gap-2.5 sm:gap-3">
-          <label className="space-y-1 text-xs font-semibold text-[var(--text-secondary)]">
+          <label className="flex flex-col gap-1.5 text-xs font-semibold text-[var(--text-secondary)]">
             <span>Start Date</span>
             <input
               type="date"
               value={startedAt}
               onChange={(e) => setStartedAt(e.target.value)}
-              className="tabular-nums min-h-10 w-full rounded-[10px] border border-[var(--border-hairline)] bg-[var(--bg-canvas)] px-2.5 text-sm text-[var(--text-primary)]"
+              className="tabular-nums h-10 w-full rounded-[10px] border border-[var(--border-hairline)] bg-[var(--bg-canvas)] px-2.5 text-sm text-[var(--text-primary)]"
             />
           </label>
 
-          <label className="space-y-1 text-xs font-semibold text-[var(--text-secondary)]">
+          <label className="flex flex-col gap-1.5 text-xs font-semibold text-[var(--text-secondary)]">
             <span>Finish Date</span>
             <input
               type="date"
               value={completedAt}
               onChange={(e) => setCompletedAt(e.target.value)}
-              className="tabular-nums min-h-10 w-full rounded-[10px] border border-[var(--border-hairline)] bg-[var(--bg-canvas)] px-2.5 text-sm text-[var(--text-primary)]"
+              className="tabular-nums h-10 w-full rounded-[10px] border border-[var(--border-hairline)] bg-[var(--bg-canvas)] px-2.5 text-sm text-[var(--text-primary)]"
             />
           </label>
         </div>

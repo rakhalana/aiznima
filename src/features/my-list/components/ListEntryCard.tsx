@@ -11,7 +11,9 @@ import {
   formatListStatusLabel,
   formatMediaFormat,
   formatMediaTitle,
+  formatNextAiringInfo,
   formatScore,
+  getBehindEpisodeCount,
 } from '@/shared/utils/formatters';
 
 interface ListEntryCardProps {
@@ -43,6 +45,16 @@ export function ListEntryCard({
   const coverUrl = media.coverImage?.large || media.coverImage?.medium;
   const totalCount = media.type === 'MANGA' ? media.chapters : media.episodes;
   const currentProgress = entry.progress ?? 0;
+  const nextAiring =
+    media.type === 'ANIME' ? formatNextAiringInfo(media.nextAiringEpisode) : null;
+  const behindCount =
+    media.type === 'ANIME'
+      ? getBehindEpisodeCount(
+          media.nextAiringEpisode?.episode,
+          currentProgress,
+          entry.status,
+        )
+      : 0;
   const isAtMax = totalCount !== null && totalCount > 0 && currentProgress >= totalCount;
   const progressPercent =
     totalCount && totalCount > 0
@@ -79,7 +91,7 @@ export function ListEntryCard({
         )}
 
         {!isRow && entry.score && entry.score > 0 ? (
-          <span className="tabular-nums absolute left-1.5 top-1.5 inline-flex items-center gap-0.5 rounded-md bg-slate-900/80 px-1.5 py-0.5 text-[10px] font-semibold text-amber-300 backdrop-blur-xs sm:hidden">
+          <span className="tabular-nums absolute left-1.5 top-1.5 inline-flex items-center gap-0.5 rounded-md bg-slate-900/85 px-1.5 py-0.5 text-[10px] font-semibold text-amber-300 sm:hidden">
             <Star className="h-2.5 w-2.5 fill-current" strokeWidth={1.75} aria-hidden="true" />
             {formatScore(entry.score, scoreFormat)}
           </span>
@@ -136,6 +148,21 @@ export function ListEntryCard({
               </span>
             ) : null}
           </div>
+
+          {nextAiring || behindCount > 0 ? (
+            <div className="flex flex-wrap items-center gap-1.5 pt-0.5 text-[10px] font-semibold tabular-nums">
+              {nextAiring ? (
+                <span className="rounded bg-[var(--accent-soft)] px-1.5 py-0.5 text-[var(--accent-ink)]">
+                  {nextAiring.shortLabel}
+                </span>
+              ) : null}
+              {behindCount > 0 ? (
+                <span className="rounded bg-amber-500/15 px-1.5 py-0.5 text-amber-700 dark:text-amber-300">
+                  Behind {behindCount} ep
+                </span>
+              ) : null}
+            </div>
+          ) : null}
         </div>
 
         <div className="space-y-1.5">

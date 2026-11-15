@@ -1,10 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import {
+  buildSequentialSeasons,
   formatCountdown,
   formatFuzzyDate,
   formatMediaTitle,
   formatScore,
+  formatSeasonLabel,
   getCurrentAndNextSeason,
+  parseSeasonFromParams,
 } from './formatters';
 
 describe('formatters', () => {
@@ -54,5 +57,28 @@ describe('formatters', () => {
 
     expect(formatFuzzyDate({ year: 2026, month: 11, day: 14 })).toBe('Nov 14 2026');
     expect(formatFuzzyDate({ year: null, month: null, day: null })).toBe('TBA');
+  });
+
+  it('builds sequential 5-year seasonal tabs starting from 1 season ahead', () => {
+    const seasons = buildSequentialSeasons(5, new Date(2026, 10, 15));
+    expect(seasons).toHaveLength(21);
+    expect(seasons.slice(0, 5)).toEqual([
+      { season: 'WINTER', year: 2027 },
+      { season: 'FALL', year: 2026 },
+      { season: 'SUMMER', year: 2026 },
+      { season: 'SPRING', year: 2026 },
+      { season: 'WINTER', year: 2026 },
+    ]);
+    expect(seasons[seasons.length - 1]).toEqual({ season: 'WINTER', year: 2022 });
+    expect(formatSeasonLabel('FALL', 2026)).toBe('Fall 2026');
+
+    expect(parseSeasonFromParams('summer', '2026', seasons, { season: 'FALL', year: 2026 })).toEqual({
+      season: 'SUMMER',
+      year: 2026,
+    });
+    expect(parseSeasonFromParams('FALL', '1999', seasons, { season: 'FALL', year: 2026 })).toEqual({
+      season: 'FALL',
+      year: 2026,
+    });
   });
 });

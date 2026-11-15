@@ -1,7 +1,8 @@
 import { useState, type ReactNode } from 'react';
-import { ArrowLeft, ExternalLink, Heart, User } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { ExternalLink, Heart, User } from 'lucide-react';
 import { openExternalUrl } from '@/platform';
+import type { FavouriteTargetKind } from '@/shared/api/favouriteMutation';
+import { FavoriteButton } from '@/shared/components/FavoriteButton';
 import { formatCompactCount } from '@/shared/utils/formatters';
 import { sanitizeHtml } from '@/shared/utils/sanitizeHtml';
 import { CollapsibleHtmlSection } from './CollapsibleHtmlSection';
@@ -9,6 +10,14 @@ import { CollapsibleHtmlSection } from './CollapsibleHtmlSection';
 export interface EntityMetaItem {
   label: string;
   value: string;
+}
+
+export interface EntityFavoriteTarget {
+  kind: FavouriteTargetKind;
+  id: number;
+  returnTo: string;
+  isFavourite: boolean;
+  isBlocked?: boolean;
 }
 
 interface EntityDetailHeroProps {
@@ -22,6 +31,7 @@ interface EntityDetailHeroProps {
   metaItems?: EntityMetaItem[];
   descriptionHtml?: string | null;
   fallbackIcon?: ReactNode;
+  favoriteTarget?: EntityFavoriteTarget;
 }
 
 /**
@@ -39,8 +49,8 @@ export function EntityDetailHero({
   metaItems = [],
   descriptionHtml,
   fallbackIcon,
+  favoriteTarget,
 }: EntityDetailHeroProps) {
-  const navigate = useNavigate();
   const [imgError, setImgError] = useState(false);
 
   const cleanBio = sanitizeHtml(descriptionHtml);
@@ -48,22 +58,30 @@ export function EntityDetailHero({
 
   return (
     <div className="space-y-4 md:space-y-5">
-      <button
-        type="button"
-        onClick={() => navigate(-1)}
-        className="inline-flex items-center gap-1.5 text-xs font-semibold text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
-      >
-        <ArrowLeft className="h-4 w-4" strokeWidth={1.75} />
-        Back
-      </button>
+      <section className="glass-artwork-card relative overflow-hidden rounded-2xl p-3.5 sm:p-5 md:p-6">
+        {imageUrl && !imgError ? (
+          <div
+            aria-hidden="true"
+            className="glass-ambient-artwork pointer-events-none absolute inset-0 hidden overflow-hidden md:block"
+          >
+            <img
+              src={imageUrl}
+              alt=""
+              onError={(e) => {
+                e.currentTarget.style.display = 'none';
+              }}
+              className="h-full w-full scale-110 object-cover opacity-[0.10] blur-2xl saturate-150 dark:opacity-[0.16]"
+            />
+            <div className="absolute inset-0 bg-gradient-to-b from-[var(--bg-surface)]/35 via-[var(--bg-surface)]/65 to-[var(--bg-surface)]/92" />
+          </div>
+        ) : null}
 
-      <section className="overflow-hidden rounded-2xl border border-[var(--border-hairline)] bg-[var(--bg-surface)] p-3.5 shadow-token-xs sm:p-5 md:p-6">
         <div
-          className={
+          className={`relative z-10 ${
             imageUrl !== undefined
               ? 'grid grid-cols-[96px_1fr] items-start gap-3.5 sm:grid-cols-[128px_1fr] sm:gap-5 md:grid-cols-[152px_1fr]'
               : 'space-y-3'
-          }
+          }`}
         >
           {imageUrl !== undefined ? (
             <div className="aspect-[2/3] w-full overflow-hidden rounded-[10px] border border-[var(--border-hairline)] bg-[var(--bg-subtle)] shadow-token-xs">
@@ -110,23 +128,36 @@ export function EntityDetailHero({
               </p>
             ) : null}
 
-            {siteUrl ? (
-              <div className="pt-0.5">
-                <button
-                  type="button"
-                  onClick={() => void openExternalUrl(siteUrl)}
-                  className="inline-flex items-center gap-1 text-xs font-semibold text-[var(--accent-primary)] hover:underline"
-                >
-                  <span>View on AniList</span>
-                  <ExternalLink className="h-3 w-3" strokeWidth={1.75} />
-                </button>
+            {favoriteTarget || siteUrl ? (
+              <div className="flex flex-wrap items-center gap-2.5 pt-1">
+                {favoriteTarget ? (
+                  <FavoriteButton
+                    targetKind={favoriteTarget.kind}
+                    targetId={favoriteTarget.id}
+                    targetLabel={title}
+                    returnTo={favoriteTarget.returnTo}
+                    isFavourite={favoriteTarget.isFavourite}
+                    isBlocked={favoriteTarget.isBlocked}
+                    size="sm"
+                  />
+                ) : null}
+                {siteUrl ? (
+                  <button
+                    type="button"
+                    onClick={() => void openExternalUrl(siteUrl)}
+                    className="inline-flex min-h-9 items-center gap-1 text-xs font-semibold text-[var(--accent-primary)] hover:underline"
+                  >
+                    <span>View on AniList</span>
+                    <ExternalLink className="h-3 w-3" strokeWidth={1.75} />
+                  </button>
+                ) : null}
               </div>
             ) : null}
           </div>
         </div>
 
         {metaItems.length > 0 ? (
-          <dl className="mt-4 grid grid-cols-2 gap-x-3 gap-y-2.5 border-t border-[var(--border-hairline)] pt-4 sm:grid-cols-4">
+          <dl className="relative z-10 mt-4 grid grid-cols-2 gap-x-3 gap-y-2.5 border-t border-[var(--border-hairline)] pt-4 sm:grid-cols-4">
             {metaItems.map((item) => (
               <div key={item.label} className="min-w-0">
                 <dt className="text-[11px] font-medium uppercase tracking-wider text-[var(--text-muted)]">

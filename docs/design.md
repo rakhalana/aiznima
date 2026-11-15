@@ -42,8 +42,13 @@ Seluruh warna didefinisikan sebagai CSS variables agar pergantian Light/Dark Mod
 | `--bg-canvas` | Latar belakang utama halaman (anti-silau) | `#F8FAFC` *(Paper Slate)* | `#0B1120` *(Deep Slate)* |
 | `--bg-surface` | Permukaan kartu, modal, & panel | `#FFFFFF` | `#111827` |
 | `--bg-subtle` | Area sekunder, chip filter, & skeleton base | `#F1F5F9` | `#1E293B` |
-| `--bg-glass` | Sticky header & bottom nav (*frosted glass*) | `rgba(248, 250, 252, 0.84)` | `rgba(11, 17, 32, 0.84)` |
+| `--bg-glass` | Sticky header & bottom nav (*frosted glass*) | `rgba(248, 250, 252, 0.82)` | `rgba(11, 17, 32, 0.80)` |
+| `--bg-glass-elevated` | Floating overlays desktop (toast, dropdown, floating nav) | `rgba(255, 255, 255, 0.74)` | `rgba(17, 24, 39, 0.74)` |
+| `--bg-glass-modal` | Container modal terpusat di desktop (`>= 768px`) | `rgba(255, 255, 255, 0.86)` | `rgba(17, 24, 39, 0.84)` |
+| `--bg-glass-pill` | Tombol kontrol mengambang (`DetailTopBar`) | `rgba(255, 255, 255, 0.78)` | `rgba(15, 23, 42, 0.74)` |
+| `--bg-glass-artwork` | Kartu header detail berlatar *artwork* di desktop | `rgba(255, 255, 255, 0.84)` | `rgba(17, 24, 39, 0.80)` |
 | `--border-hairline` | Garis tepi kartu & pemisah seksi (`1px`) | `#E2E8F0` | `#1E293B` |
+| `--border-glass` | Garis tepi kaca agar kontras tetap tegas di Light/Dark | `rgba(15, 23, 42, 0.09)` | `rgba(255, 255, 255, 0.11)` |
 | `--border-strong` | Garis fokus input / batas aktif | `#CBD5E1` | `#334155` |
 | `--text-primary` | Judul, teks utama, angka skor | `#0F172A` *(Slate 900)* | `#F8FAFC` |
 | `--text-secondary` | Sinopsis, subjudul, label metadata | `#475569` *(Slate 600)* | `#94A3B8` |
@@ -124,9 +129,11 @@ Prinsip utama Aiznima adalah **Border-First, Shadow-Whisper**: elevasi di Light 
 * **`shadow-xs` (Kartu & Tombol):** `0 1px 2px rgba(15, 23, 42, 0.04)`
 * **`shadow-sm` (Popover, Toast, Floating Filter):** `0 4px 12px rgba(15, 23, 42, 0.06)`
 * **`shadow-lg` (Modal & Bottom Sheet):** `0 12px 32px rgba(15, 23, 42, 0.10)`
-* **Frosted Glass Blur:**
-  * *Sticky Top Header* & *Mobile Bottom Nav*: `backdrop-filter: blur(12px)` dengan latar `--bg-glass` + hairline border tipis.
-  * *Modal/Sheet Backdrop Overlay*: `rgba(15, 23, 42, 0.35)` dengan `backdrop-filter: blur(2px)`.
+* **Responsive Glass Tiers (Mobile Subtle vs. Desktop Showcase):**
+  * **Tier 1 (`< 768px` / `.apk` WebView):** *Sticky Top Header* & *Mobile Bottom Nav* memakai `.glass-chrome-docked` (`blur(12px) saturate(135%)` dengan `--bg-glass`), sedangkan Bottom Sheet, Toast, dan badan kartu grid tetap solid/nyaris solid demi kontras serta kelancaran scroll 60fps.
+  * **Tier 2 (`>= 768px` Desktop):** Overlays mengambang (`ToastViewport`, `SelectDropdown`), kontrol `DetailTopBar`, modal desktop (`BottomSheetOrModal`), serta header berlatar *artwork* (`HeroBanner`, `MediaDetailPage`, `ProfileHeaderAndStats`, `EntityDetailHero`) memakai efek frosted lebih kaya (`blur(16px–20px) saturate(145%–165%)`) dengan `--border-glass` dan *specular top highlight*.
+  * **Performance & Accessibility Guardrails:** Dibatasi maksimal 2–3 layer `backdrop-filter` aktif sekaligus, dilarang memasang `backdrop-filter` pada badan kartu grid yang di-scroll, serta memiliki fallback otomatis solid surface via `@supports not (backdrop-filter: ...)` dan `@media (prefers-reduced-transparency: reduce)`.
+  * *Modal/Sheet Backdrop Overlay* (`.glass-scrim`): `rgba(15, 23, 42, 0.36)` + `blur(2px)` di mobile, `rgba(2, 6, 23, 0.42)` + `blur(4px)` di desktop.
 
 ---
 
@@ -134,7 +141,7 @@ Prinsip utama Aiznima adalah **Border-First, Shadow-Whisper**: elevasi di Light 
 
 ### 8.1 Navigation Shell (`AppShell`)
 * **Mobile / `.apk` (`< 768px`):** Top bar ringkas (Logo Aiznima + switch Anime/Manga atau tombol Search/Auth) dan **Bottom Navigation Bar** berisi 5 rute inti: *Discover*, *Search*, *Schedule*, *My List*, dan *Profile* (beserta akses *Settings* di header Profil).
-* **Desktop (`>= 768px`):** Sidebar kiri ramping (`220px–240px`) berisi navigasi utama + ringkasan status akun/login di bagian bawah, memberi ruang lebar penuh untuk grid katalog dan tabel/list.
+* **Desktop (`>= 768px`):** **Floating Glass Top-Navbar** (`.glass-floating-nav`, `max-w-7xl`) mengambang di atas kanvas (`--desktop-nav-height: 4.5rem`), berisi brand di kiri, pill navigasi utama di tengah, serta utility cluster (*Notifications*, *Settings*, *Theme Toggle*, dan status akun/login) di kanan agar seluruh lebar kontainer tersedia untuk showcase editorial.
 
 ### 8.2 Media Card (`MediaCard`)
 * Poster rasio konsisten **`aspect-[2/3]`** dengan `object-cover` dan placeholder slate lembut saat loading.
@@ -190,8 +197,8 @@ Prinsip utama Aiznima adalah **Border-First, Shadow-Whisper**: elevasi di Light 
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | **`< 640px`** | Smartphone / `.apk` | 2 kolom (`gap-3`) *(atau 3 kolom di tablet mini)* | Bottom Nav (5 tab) + Top Bar ringkas | Bottom Sheet (`rounded-t-2xl`) | Wajib `env(safe-area-inset-top)` & `env(safe-area-inset-bottom)` |
 | **`640px–767px`** | Big Phone / Phablet | 3 kolom (`gap-3.5`) | Bottom Nav + Top Bar | Bottom Sheet | Padding horizontal `16px–20px` |
-| **`768px–1023px`** | Tablet | 4 kolom (`gap-4`) | Sidebar ramping / Top Nav | Centered Modal | Container `px-6` |
-| **`>= 1024px`** | Desktop Web | 5–6 kolom (`gap-5`) | Sidebar kiri tetap (`220px–240px`) | Centered Modal (`max-w-lg`) | Container `max-w-7xl mx-auto px-8`, support keyboard shortcuts |
+| **`768px–1023px`** | Tablet | 4 kolom (`gap-4`) | Floating Glass Top-Navbar | Centered Modal | Container `px-8`, clearance `--desktop-nav-height` |
+| **`>= 1024px`** | Desktop Web | 5–6 kolom (`gap-5`), Discover row 5 kolom penuh | Floating Glass Top-Navbar | Centered Modal (`max-w-lg`) | Container `max-w-7xl mx-auto px-8`, support keyboard shortcuts |
 
 * **Media Detail Hero:** Di mobile, banner atas ringkas + poster menumpuk rapi di kiri judul; di desktop, banner lebar penuh dengan kartu info terstruktur di sebelah kanan poster.
 

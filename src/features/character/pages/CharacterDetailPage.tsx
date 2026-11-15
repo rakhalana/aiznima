@@ -8,6 +8,7 @@ import {
 import { NetworkError } from '@/shared/api/graphqlClient';
 import type { CharacterMediaEdge, MediaType } from '@/shared/api/types';
 import { Button } from '@/shared/components/Button';
+import { DetailTopBar } from '@/shared/components/DetailTopBar';
 import {
   EntityDetailHero,
   type EntityMetaItem,
@@ -104,24 +105,36 @@ export function CharacterDetailPage() {
     setExpandedEdgeIds((prev) => ({ ...prev, [edgeId]: !prev[edgeId] }));
   };
 
+  const shareUrl = character.siteUrl ?? `https://anilist.co/character/${character.id}`;
+
   return (
-    <div className="space-y-5 md:space-y-6">
-      <EntityDetailHero
-        title={character.name.full ?? 'Unknown Character'}
-        nativeTitle={character.name.native}
-        alternativeNames={character.name.alternative}
-        imageUrl={character.image?.large ?? character.image?.medium ?? null}
-        favourites={character.favourites}
-        siteUrl={character.siteUrl}
-        badges={
-          <span className="rounded-md bg-[var(--accent-soft)] px-2 py-0.5 text-[var(--accent-ink)]">
-            Character
-          </span>
-        }
-        metaItems={metaItems}
-        descriptionHtml={character.description}
-        fallbackIcon={<User className="h-7 w-7" strokeWidth={1.5} />}
-      />
+    <div className="flex flex-col">
+      <DetailTopBar onBack={() => navigate(-1)} shareUrl={shareUrl} />
+
+      <div className="space-y-5 md:space-y-6">
+        <EntityDetailHero
+          title={character.name.full ?? 'Unknown Character'}
+          nativeTitle={character.name.native}
+          alternativeNames={character.name.alternative}
+          imageUrl={character.image?.large ?? character.image?.medium ?? null}
+          favourites={character.favourites}
+          siteUrl={character.siteUrl}
+          favoriteTarget={{
+            kind: 'CHARACTER',
+            id: character.id,
+            returnTo: `/character/${character.id}`,
+            isFavourite: Boolean(character.isFavourite),
+            isBlocked: Boolean(character.isFavouriteBlocked),
+          }}
+          badges={
+            <span className="rounded-md bg-[var(--accent-soft)] px-2 py-0.5 text-[var(--accent-ink)]">
+              Character
+            </span>
+          }
+          metaItems={metaItems}
+          descriptionHtml={character.description}
+          fallbackIcon={<User className="h-7 w-7" strokeWidth={1.5} />}
+        />
 
       <section className="space-y-3">
         <div className="flex flex-wrap items-center justify-between gap-2.5">
@@ -263,6 +276,7 @@ export function CharacterDetailPage() {
           </>
         )}
       </section>
+      </div>
     </div>
   );
 }

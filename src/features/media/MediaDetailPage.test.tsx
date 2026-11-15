@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { LoginPromptModal } from '@/features/auth/components/LoginPromptModal';
@@ -457,7 +457,7 @@ describe('MediaDetailPage', () => {
     expect(screen.getByText('No related titles listed')).toBeInTheDocument();
   });
 
-  it('copies AniList link for anime or manga when Share button is clicked', async () => {
+  it('copies AniList link via floating Share button, toggles Favorite, shows next airing countdown, and syncs list cache', async () => {
     const writeText = vi.fn().mockResolvedValue(undefined);
     Object.defineProperty(navigator, 'clipboard', {
       value: { writeText },
@@ -465,54 +465,153 @@ describe('MediaDetailPage', () => {
     });
     useToastStore.setState({ toasts: [] });
 
-    vi.stubGlobal(
-      'fetch',
-      vi
-        .fn()
-        .mockResolvedValueOnce(
-          new Response(JSON.stringify({ data: { Media: makeDetail() } }), {
-            status: 200,
-            headers: { 'Content-Type': 'application/json' },
+    const futureSec = Math.floor(Date.now() / 1000) + 3 * 3600 + 1200;
+    const fetchMock = vi.fn().mockImplementation(async (_url, init) => {
+      const body = JSON.parse(String(init?.body ?? '{}')) as {
+        query?: string;
+        variables?: { id?: number; animeId?: number };
+      };
+
+      if (body.query?.includes('ToggleFavourite')) {
+        return new Response(
+          JSON.stringify({ data: { ToggleFavourite: { anime: { pageInfo: { total: 1 } } } } }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } },
+        );
+      }
+
+      if (body.query?.includes('SaveMediaListEntry')) {
+        return new Response(
+          JSON.stringify({
+            data: {
+              SaveMediaListEntry: {
+                id: 700,
+                mediaId: 1,
+                status: 'CURRENT',
+                score: 85,
+                progress: 5,
+                progressVolumes: 0,
+                repeat: 0,
+                private: false,
+                notes: null,
+                startedAt: null,
+                completedAt: null,
+                updatedAt: 1700000100,
+                media: makeDetail({ id: 1 }),
+              },
+            },
           }),
-        )
-        .mockResolvedValueOnce(
-          new Response(
-            JSON.stringify({
-              data: {
-                Media: makeDetail({
-                  id: 118586,
-                  type: 'MANGA',
-                  format: 'MANGA',
-                }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } },
+        );
+      }
+
+      if (body.variables?.id === 118586) {
+        return new Response(
+          JSON.stringify({
+            data: {
+              Media: makeDetail({
+                id: 118586,
+                type: 'MANGA',
+                format: 'MANGA',
+                episodes: null,
+                chapters: 140,
+                nextAiringEpisode: null,
+                mediaListEntry: {
+                  id: 999,
+                  status: 'CURRENT',
+                  score: 90,
+                  progress: 12,
+                  progressVolumes: 2,
+                  repeat: 0,
+                  private: false,
+                  notes: null,
+                  startedAt: null,
+                  completedAt: null,
+                  updatedAt: 1700000000,
+                },
+              }),
+            },
+          }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } },
+        );
+      }
+
+      return new Response(
+        JSON.stringify({
+          data: {
+            Media: makeDetail({
+              isFavourite: false,
+              favourites: 42000,
+              nextAiringEpisode: {
+                id: 1501,
+                episode: 15,
+                airingAt: futureSec,
+                timeUntilAiring: 3 * 3600 + 1200,
               },
             }),
-            { status: 200, headers: { 'Content-Type': 'application/json' } },
-          ),
-        ),
-    );
+          },
+        }),
+        { status: 200, headers: { 'Content-Type': 'application/json' } },
+      );
+    });
+    vi.stubGlobal('fetch', fetchMock);
 
     const { unmount } = renderMediaRoute('/media/1');
     await waitFor(() => {
       expect(screen.getByRole('heading', { name: 'Sousou no Frieren' })).toBeInTheDocument();
     });
 
+    // Next airing episode countdown pill appears on MediaDetailPage hero
+    expect(screen.getByText(/Ep 15 airs in/i)).toBeInTheDocument();
+
     const addButton = screen.getByRole('button', { name: /add to list/i });
+    const favButton = screen.getByRole('button', { name: 'Favorite' });
+    const backButton = screen.getByRole('button', { name: 'Back' });
     const shareButton = screen.getByRole('button', { name: 'Share' });
     expect(addButton.parentElement?.className).toContain('grid-cols-2');
     expect(addButton.className).toContain('w-full');
-    expect(shareButton.className).toContain('w-full');
+    expect(favButton.className).toContain('w-full');
+    expect(shareButton.parentElement).toBe(backButton.parentElement);
 
+    // Floating Share copies AniList anime URL
     fireEvent.click(shareButton);
     await waitFor(() => {
       expect(writeText).toHaveBeenCalledWith('https://anilist.co/anime/1');
-      expect(screen.getByRole('button', { name: 'Copied' })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Copied link' })).toBeInTheDocument();
     });
     expect(useToastStore.getState().toasts.some((t) => /copied/i.test(t.message))).toBe(true);
 
+    // Guest clicking Favorite opens LoginPromptModal
+    fireEvent.click(favButton);
+    expect(screen.getByRole('dialog', { name: /log in with anilist/i })).toBeInTheDocument();
+
+    // Sign in and toggle Favorite optimistically
+    act(() => {
+      useLoginPromptStore.getState().closeLoginPrompt();
+      useAuthStore.setState({ accessToken: 'tok' });
+    });
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Favorite' }));
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Favorited' })).toHaveAttribute(
+        'aria-pressed',
+        'true',
+      );
+    });
+
+    // Save entry from MediaDetailPage syncs ['media', 1] cache immediately (Poin 1)
+    fireEvent.click(screen.getByRole('button', { name: /add to list/i }));
+    const editorDialog = await screen.findByRole('dialog', { name: /add to list/i });
+    fireEvent.submit(editorDialog.querySelector('form')!);
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /Watching · 5 eps\./i })).toBeInTheDocument();
+    });
+
+    // Manga detail displays "ch." instead of "eps." and copies manga URL
     unmount();
     renderMediaRoute('/media/118586');
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: 'Share' })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /Reading · 12 ch\./i })).toBeInTheDocument();
     });
 
     fireEvent.click(screen.getByRole('button', { name: 'Share' }));

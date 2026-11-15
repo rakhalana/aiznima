@@ -35,6 +35,8 @@ const STAFF_DETAIL_QUERY = `
       homeTown
       bloodType
       siteUrl
+      isFavourite
+      isFavouriteBlocked
     }
   }
 `;

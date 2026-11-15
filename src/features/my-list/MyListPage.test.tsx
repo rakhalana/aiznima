@@ -219,6 +219,13 @@ describe('MyListPage & ListEditorModal', () => {
 
     expect(screen.getByRole('dialog', { name: /edit list entry/i })).toBeInTheDocument();
     expect(screen.getByLabelText(/rating \(1 – 3\)/i)).toBeInTheDocument();
+    const episodesInput = screen.getByLabelText(/episodes/i);
+    const rewatchesInput = screen.getByLabelText(/total rewatches/i);
+    const episodesField = episodesInput.closest('div.min-w-0');
+    const rowContainer = rewatchesInput.closest('div.grid');
+    expect(rowContainer).toBe(episodesField?.parentElement);
+    expect(rowContainer).toHaveClass('sm:grid-cols-2');
+    expect(episodesField).not.toHaveClass('col-span-2');
 
     const notesBox = screen.getByPlaceholderText(/personal notes/i);
     fireEvent.change(notesBox, { target: { value: 'Unsaved masterpiece note' } });
@@ -285,5 +292,113 @@ describe('MyListPage & ListEditorModal', () => {
       'true',
     );
     expect(card).toHaveClass('flex-row');
+  });
+
+  it('merges hasNextChunk collection pages, displays airing/behind badges, and supports sort, format & airing filters', async () => {
+    const futureSec = Math.floor(Date.now() / 1000) + 5 * 3600;
+    const chunk1Entry = makeEntry({
+      id: 2001,
+      mediaId: 101,
+      score: 75,
+      progress: 4,
+      media: {
+        ...makeEntry().media,
+        id: 101,
+        format: 'TV',
+        status: 'RELEASING',
+        episodes: 24,
+        title: { romaji: 'Blue Box', english: 'Blue Box', native: null },
+        nextAiringEpisode: { id: 1201, episode: 12, airingAt: futureSec, timeUntilAiring: 5 * 3600 },
+      },
+    });
+    const chunk2Entry = makeEntry({
+      id: 2002,
+      mediaId: 102,
+      score: 95,
+      progress: 1,
+      media: {
+        ...makeEntry().media,
+        id: 102,
+        format: 'MOVIE',
+        status: 'FINISHED',
+        episodes: 1,
+        title: { romaji: 'A Silent Voice', english: 'A Silent Voice', native: null },
+        nextAiringEpisode: null,
+      },
+    });
+
+    const fetchMock = vi.fn().mockImplementation(async (_url, init) => {
+      const body = JSON.parse(String(init?.body ?? '{}')) as {
+        variables?: { chunk?: number };
+      };
+      if (body.variables?.chunk === 2) {
+        return new Response(
+          JSON.stringify({
+            data: {
+              MediaListCollection: {
+                hasNextChunk: false,
+                lists: [
+                  {
+                    name: 'Watching',
+                    isCustomList: false,
+                    status: 'CURRENT',
+                    entries: [chunk2Entry],
+                  },
+                ],
+              },
+            },
+          }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } },
+        );
+      }
+
+      return new Response(
+        JSON.stringify({
+          data: {
+            MediaListCollection: {
+              hasNextChunk: true,
+              lists: [
+                {
+                  name: 'Watching',
+                  isCustomList: false,
+                  status: 'CURRENT',
+                  entries: [chunk1Entry],
+                },
+              ],
+            },
+          },
+        }),
+        { status: 200, headers: { 'Content-Type': 'application/json' } },
+      );
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    renderMyList();
+
+    expect(await screen.findByText('Blue Box')).toBeInTheDocument();
+    expect(screen.getByText('A Silent Voice')).toBeInTheDocument();
+    expect(screen.getByText(/Ep 12 in/i)).toBeInTheDocument();
+    expect(screen.getByText('Behind 7 ep')).toBeInTheDocument();
+
+    // Quick Airing / Behind toggle hides non-airing finished movies
+    fireEvent.click(screen.getByRole('button', { name: /airing \/ behind/i }));
+    expect(screen.getByText('Blue Box')).toBeInTheDocument();
+    expect(screen.queryByText('A Silent Voice')).not.toBeInTheDocument();
+
+    // Toggle off, filter by Movie format -> only A Silent Voice remains
+    fireEvent.click(screen.getByRole('button', { name: /airing \/ behind/i }));
+    fireEvent.click(screen.getByRole('combobox', { name: 'Filter by format' }));
+    fireEvent.click(screen.getByRole('option', { name: 'Movie' }));
+    expect(screen.getByText('A Silent Voice')).toBeInTheDocument();
+    expect(screen.queryByText('Blue Box')).not.toBeInTheDocument();
+
+    // Reset format & sort by Title A-Z
+    fireEvent.click(screen.getByRole('combobox', { name: 'Filter by format' }));
+    fireEvent.click(screen.getByRole('option', { name: 'All Formats' }));
+    fireEvent.click(screen.getByRole('combobox', { name: 'Sort list entries' }));
+    fireEvent.click(screen.getByRole('option', { name: 'Title A–Z' }));
+
+    const headings = screen.getAllByRole('heading', { level: 3 }).map((el) => el.textContent);
+    expect(headings).toEqual(['A Silent Voice', 'Blue Box']);
   });
 });

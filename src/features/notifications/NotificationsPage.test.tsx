@@ -54,7 +54,7 @@ describe('NotificationsPage', () => {
     expect(screen.getByRole('button', { name: /login with anilist/i })).toBeInTheDocument();
   });
 
-  it('renders notifications, filters categories, navigates on click, and marks all read', async () => {
+  it('renders notifications, filters categories, and navigates on click without a Mark all read button', async () => {
     const openExternalSpy = vi.spyOn(platform, 'openExternalUrl').mockResolvedValue();
 
     useAuthStore.setState({
@@ -178,19 +178,12 @@ describe('NotificationsPage', () => {
     fireEvent.click(screen.getByText('replied to your activity'));
     expect(openExternalSpy).toHaveBeenCalledWith('https://anilist.co/activity/555');
 
+    expect(screen.queryByRole('button', { name: /mark all read/i })).not.toBeInTheDocument();
+
     // Filter to Airing only
     fireEvent.click(screen.getByRole('tab', { name: 'Airing' }));
     expect(await screen.findByText('Episode 12 aired')).toBeInTheDocument();
     expect(screen.queryByText('started following you')).not.toBeInTheDocument();
-
-    // Back to All and mark all read
-    fireEvent.click(screen.getByRole('tab', { name: 'All' }));
-    expect(await screen.findByText('started following you')).toBeInTheDocument();
-
-    fireEvent.click(screen.getByRole('button', { name: /mark all read/i }));
-    await waitFor(() => {
-      expect(screen.queryByText('2 unread')).not.toBeInTheDocument();
-    });
     expect(screen.queryAllByLabelText('Unread notification')).toHaveLength(0);
 
     // Clicking Airing notification navigates to /media/:id

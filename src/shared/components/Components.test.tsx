@@ -50,6 +50,26 @@ describe('shared UI components', () => {
     expect(onSelect).toHaveBeenCalledWith(SAMPLE_MEDIA);
   });
 
+  it('renders upcoming episode countdown line on airing MediaCard without cluttering cover', () => {
+    const futureSec = Math.floor(Date.now() / 1000) + 2 * 86400 + 3 * 3600;
+    render(
+      <MediaCard
+        media={{
+          ...SAMPLE_MEDIA,
+          status: 'RELEASING',
+          nextAiringEpisode: {
+            id: 901,
+            episode: 9,
+            airingAt: futureSec,
+            timeUntilAiring: 2 * 86400 + 3 * 3600,
+          },
+        }}
+      />,
+    );
+
+    expect(screen.getByText(/Ep 9 in 2d/i)).toBeInTheDocument();
+  });
+
   it('renders EmptyState and ErrorState with actionable CTAs', () => {
     const onReset = vi.fn();
     const onRetry = vi.fn();

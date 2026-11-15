@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from 'react';
-import { ArrowLeft, BookmarkPlus, Check, Edit3, Heart, Share2, Star, Users } from 'lucide-react';
+import { useState } from 'react';
+import { BookmarkPlus, Clock, Edit3, Heart, Star, Users } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useLoginPromptStore } from '@/features/auth/stores/useLoginPromptStore';
 import { useMediaDetailQuery } from '@/features/media/api/mediaQueries';
@@ -10,20 +10,21 @@ import {
   type MediaDetailTab,
 } from '@/features/media/components/MediaDetailTabs';
 import { ListEditorModal } from '@/features/my-list/components/ListEditorModal';
-import { copyTextToClipboard } from '@/platform';
 import { NetworkError } from '@/shared/api/graphqlClient';
 import { Button } from '@/shared/components/Button';
+import { DetailTopBar } from '@/shared/components/DetailTopBar';
+import { FavoriteButton } from '@/shared/components/FavoriteButton';
 import { DetailSkeleton } from '@/shared/components/Skeleton';
 import { ErrorState } from '@/shared/components/StateFeedback';
 import { useIsAdultFilter } from '@/shared/hooks/useIsAdultFilter';
 import { usePreferredTitleLanguage } from '@/shared/hooks/usePreferredTitleLanguage';
 import { useAuthStore } from '@/shared/stores/useAuthStore';
-import { useToastStore } from '@/shared/stores/useToastStore';
 import {
   formatCompactCount,
   formatListStatusLabel,
   formatMeanScore,
   formatMediaFormat,
+  formatNextAiringInfo,
 } from '@/shared/utils/formatters';
 
 const TABS: Array<{ id: MediaDetailTab; label: string }> = [
@@ -45,30 +46,18 @@ export function MediaDetailPage() {
   const [activeTab, setActiveTab] = useState<MediaDetailTab>('overview');
   const [revealedAdult, setRevealedAdult] = useState(false);
   const [editorOpen, setEditorOpen] = useState(false);
-  const [copied, setCopied] = useState(false);
-  const copyTimerRef = useRef<number | null>(null);
 
   if (trackedId !== validId) {
     setTrackedId(validId);
     setActiveTab('overview');
     setRevealedAdult(false);
     setEditorOpen(false);
-    setCopied(false);
   }
-
-  useEffect(() => {
-    return () => {
-      if (copyTimerRef.current !== null) {
-        window.clearTimeout(copyTimerRef.current);
-      }
-    };
-  }, []);
 
   const { allowAdult } = useIsAdultFilter();
   const preferredLanguage = usePreferredTitleLanguage();
   const accessToken = useAuthStore((state) => state.accessToken);
   const openLoginPrompt = useLoginPromptStore((state) => state.openLoginPrompt);
-  const addToast = useToastStore((state) => state.addToast);
 
   const { data: media, isLoading, isError, error, refetch } = useMediaDetailQuery(validId);
 
@@ -110,7 +99,13 @@ export function MediaDetailPage() {
 
   const title = getMediaHeroTitle(media, preferredLanguage);
   const coverUrl = media.coverImage?.extraLarge || media.coverImage?.large || media.coverImage?.medium;
+  const artworkBackdropUrl = media.bannerImage || coverUrl;
   const entry = media.mediaListEntry;
+  const typeSlug = media.type === 'MANGA' ? 'manga' : 'anime';
+  const shareUrl = `https://anilist.co/${typeSlug}/${media.id}`;
+  const nextAiring =
+    media.type === 'ANIME' ? formatNextAiringInfo(media.nextAiringEpisode) : null;
+  const progressUnit = media.type === 'MANGA' ? 'ch.' : 'eps.';
 
   const handleTrackClick = () => {
     if (!accessToken) {
@@ -124,69 +119,56 @@ export function MediaDetailPage() {
     setEditorOpen(true);
   };
 
-  const handleShareClick = async () => {
-    const typeSlug = media.type === 'MANGA' ? 'manga' : 'anime';
-    const anilistUrl = `https://anilist.co/${typeSlug}/${media.id}`;
-    const ok = await copyTextToClipboard(anilistUrl);
-
-    if (ok) {
-      setCopied(true);
-      if (copyTimerRef.current !== null) {
-        window.clearTimeout(copyTimerRef.current);
-      }
-      copyTimerRef.current = window.setTimeout(() => {
-        setCopied(false);
-      }, 2000);
-      addToast({
-        variant: 'success',
-        message: 'AniList link copied to clipboard.',
-      });
-      return;
-    }
-
-    addToast({
-      variant: 'error',
-      message: 'Unable to copy link.',
-    });
-  };
-
   return (
     <div className="flex flex-col">
-      <div
-        className={`pointer-events-none sticky z-30 flex justify-start ${media.bannerImage
-          ? 'top-safe pl-3 pt-3 md:top-0 md:pl-4 md:pt-4'
-          : 'top-safe-float mb-3 md:top-4 md:mb-4'
-          }`}
-      >
-        <button
-          type="button"
-          onClick={() => navigate(-1)}
-          aria-label="Back"
-          className="pointer-events-auto inline-flex h-9 w-9 items-center justify-center rounded-full border border-[var(--border-hairline)] bg-[var(--bg-glass)] text-xs font-semibold text-[var(--text-primary)] shadow-token-sm backdrop-blur-md transition-crisp hover:bg-[var(--bg-surface)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40"
-        >
-          <ArrowLeft className="h-4 w-4" strokeWidth={1.75} />
-        </button>
-      </div>
+      <DetailTopBar
+        onBack={() => navigate(-1)}
+        shareUrl={shareUrl}
+        hasBanner={Boolean(media.bannerImage)}
+      />
 
       {/* Banner + Header */}
       <section
-        className={`overflow-hidden rounded-2xl border border-[var(--border-hairline)] bg-[var(--bg-surface)] shadow-token-xs ${media.bannerImage ? '-mt-12 md:-mt-[52px]' : ''
+        className={`glass-artwork-card relative overflow-hidden rounded-2xl ${media.bannerImage ? '-mt-12 md:-mt-[52px]' : ''
           }`}
       >
+        {artworkBackdropUrl ? (
+          <div
+            aria-hidden="true"
+            className={`glass-ambient-artwork pointer-events-none absolute inset-x-0 bottom-0 hidden overflow-hidden md:block ${
+              media.bannerImage ? 'top-36' : 'top-0'
+            }`}
+          >
+            <img
+              src={artworkBackdropUrl}
+              alt=""
+              onError={(e) => {
+                e.currentTarget.style.display = 'none';
+              }}
+              className="h-full w-full scale-110 object-cover opacity-[0.14] blur-2xl saturate-150 dark:opacity-[0.20]"
+            />
+            <div className="absolute inset-0 bg-gradient-to-b from-[var(--bg-surface)]/25 via-[var(--bg-surface)]/55 to-[var(--bg-surface)]/90" />
+          </div>
+        ) : null}
+
         {media.bannerImage ? (
-          <div className="h-32 w-full overflow-hidden bg-[var(--bg-subtle)] sm:h-40 md:h-52">
+          <div className="relative z-10 h-32 w-full overflow-hidden bg-[var(--bg-subtle)] sm:h-40 md:h-56 lg:h-64">
             <img
               src={media.bannerImage}
               alt=""
               aria-hidden="true"
               className="h-full w-full object-cover"
             />
+            <div
+              aria-hidden="true"
+              className="pointer-events-none absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-black/20 to-transparent"
+            />
           </div>
         ) : null}
 
-        <div className="grid grid-cols-[96px_1fr] items-end gap-x-3.5 gap-y-3 p-3.5 sm:grid-cols-[116px_1fr] sm:gap-x-5 sm:gap-y-2.5 md:grid-cols-[144px_1fr] md:p-6">
+        <div className="relative z-10 grid grid-cols-[96px_1fr] items-end gap-x-3.5 gap-y-3 p-3.5 sm:grid-cols-[116px_1fr] sm:gap-x-5 sm:gap-y-2.5 md:grid-cols-[164px_1fr] md:p-7 lg:grid-cols-[180px_1fr]">
           <div
-            className={`aspect-[2/3] w-full overflow-hidden rounded-[10px] border border-[var(--border-hairline)] bg-[var(--bg-subtle)] shadow-token-sm sm:row-span-2 ${media.bannerImage ? '-mt-12 sm:-mt-16' : ''
+            className={`aspect-[2/3] w-full overflow-hidden rounded-[10px] border border-[var(--border-hairline)] bg-[var(--bg-subtle)] shadow-token-sm sm:row-span-2 ${media.bannerImage ? '-mt-12 sm:-mt-16 md:-mt-20' : ''
               }`}
           >
             {coverUrl ? (
@@ -255,11 +237,23 @@ export function MediaDetailPage() {
               </div>
             ) : null}
 
-            <div className="grid grid-cols-2 gap-2 pt-0.5">
+            {nextAiring ? (
+              <div className="inline-flex flex-wrap items-center gap-1.5 rounded-lg border border-sky-500/20 bg-[var(--accent-soft)] px-2.5 py-1.5 text-xs font-medium text-[var(--accent-ink)] tabular-nums">
+                <Clock className="h-3.5 w-3.5 shrink-0" strokeWidth={1.75} aria-hidden="true" />
+                <span>
+                  Ep {nextAiring.episode} airs in <strong>{nextAiring.countdown}</strong>
+                </span>
+                {nextAiring.formattedDate ? (
+                  <span className="text-[11px] opacity-80">· {nextAiring.formattedDate}</span>
+                ) : null}
+              </div>
+            ) : null}
+
+            <div className="grid grid-cols-2 gap-2 pt-0.5 sm:flex sm:flex-wrap sm:items-center sm:gap-2.5">
               <Button
                 variant={entry ? 'secondary' : 'primary'}
                 size="sm"
-                className="w-full"
+                className="w-full sm:w-auto sm:min-w-[164px]"
                 onClick={handleTrackClick}
                 leftIcon={
                   entry ? (
@@ -270,29 +264,20 @@ export function MediaDetailPage() {
                 }
               >
                 {entry?.status
-                  ? `${formatListStatusLabel(entry.status, media.type)} · ${entry.progress ?? 0} eps.`
+                  ? `${formatListStatusLabel(entry.status, media.type)} · ${entry.progress ?? 0} ${progressUnit}`
                   : 'Add to List'}
               </Button>
 
-              <Button
-                variant="secondary"
+              <FavoriteButton
+                targetKind={media.type}
+                targetId={media.id}
+                targetLabel={title}
+                returnTo={`/media/${media.id}`}
+                isFavourite={Boolean(media.isFavourite)}
+                isBlocked={Boolean(media.isFavouriteBlocked)}
                 size="sm"
-                className="w-full"
-                onClick={() => void handleShareClick()}
-                title="Copy AniList link"
-                leftIcon={
-                  copied ? (
-                    <Check
-                      className="h-4 w-4 shrink-0 text-[var(--status-current-text)]"
-                      strokeWidth={2}
-                    />
-                  ) : (
-                    <Share2 className="h-4 w-4 shrink-0" strokeWidth={1.75} />
-                  )
-                }
-              >
-                {copied ? 'Copied' : 'Share'}
-              </Button>
+                className="w-full sm:w-auto sm:min-w-[164px]"
+              />
             </div>
           </div>
         </div>
@@ -302,7 +287,7 @@ export function MediaDetailPage() {
       <div
         role="tablist"
         aria-label="Media detail sections"
-        className="no-scrollbar mt-4 flex gap-1 overflow-x-auto rounded-[10px] border border-[var(--border-hairline)] bg-[var(--bg-subtle)] p-1 md:mt-6"
+        className="no-scrollbar mt-4 flex gap-1 overflow-x-auto rounded-[10px] border border-[var(--border-hairline)] bg-[var(--bg-subtle)] p-1 md:mt-6 md:inline-flex md:w-fit"
       >
         {TABS.map((tab) => (
           <button

@@ -3,6 +3,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { StaffDetailPage } from '@/features/staff/pages/StaffDetailPage';
+import { useAuthStore } from '@/shared/stores/useAuthStore';
 import { usePrefsStore } from '@/shared/stores/usePrefsStore';
 
 function LocationEcho({ prefix }: { prefix: string }) {
@@ -27,6 +28,7 @@ function renderStaffRoute(initialEntry: string) {
 
 describe('StaffDetailPage', () => {
   beforeEach(() => {
+    useAuthStore.setState({ accessToken: null, viewer: null, isHydrated: true });
     usePrefsStore.setState({ activeMediaType: 'ANIME', guestShowAdult: false, isHydrated: true });
   });
 
@@ -196,5 +198,98 @@ describe('StaffDetailPage', () => {
 
     fireEvent.click(screen.getByText('Frieren'));
     expect(screen.getByTestId('route-echo')).toHaveTextContent('character:/character/17');
+  });
+
+  it('copies staff link via floating Share button and toggles Favorite via ToggleFavourite', async () => {
+    useAuthStore.setState({ accessToken: 'staff-tok', isHydrated: true });
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, 'clipboard', {
+      value: { writeText },
+      configurable: true,
+    });
+
+    const fetchMock = vi.fn(async (_url, init) => {
+      const body = JSON.parse(String(init?.body ?? '{}')) as { query?: string };
+
+      if (body.query?.includes('ToggleFavourite')) {
+        return new Response(
+          JSON.stringify({ data: { ToggleFavourite: { anime: { pageInfo: { total: 1 } } } } }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } },
+        );
+      }
+
+      if (body.query?.includes('query StaffDetail')) {
+        return new Response(
+          JSON.stringify({
+            data: {
+              Staff: {
+                id: 10687,
+                name: { full: 'Atsumi Tanezaki', native: '種﨑敦美', alternative: [] },
+                image: { medium: null, large: null },
+                languageV2: 'Japanese',
+                primaryOccupations: ['Voice Actor'],
+                favourites: 12400,
+                isFavourite: false,
+                isFavouriteBlocked: false,
+                description: '<p>VA</p>',
+                gender: 'Female',
+                dateOfBirth: { year: null, month: 9, day: 27 },
+                dateOfDeath: { year: null, month: null, day: null },
+                age: 34,
+                yearsActive: [2012],
+                homeTown: 'Oita Prefecture',
+                bloodType: 'A',
+                siteUrl: 'https://anilist.co/staff/10687',
+              },
+            },
+          }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } },
+        );
+      }
+
+      return new Response(
+        JSON.stringify({
+          data: {
+            Staff: {
+              id: 10687,
+              characterMedia: {
+                pageInfo: { total: 0, perPage: 18, currentPage: 1, lastPage: 1, hasNextPage: false },
+                edges: [],
+              },
+              staffMedia: {
+                pageInfo: { total: 0, perPage: 18, currentPage: 1, lastPage: 1, hasNextPage: false },
+                edges: [],
+              },
+            },
+          },
+        }),
+        { status: 200, headers: { 'Content-Type': 'application/json' } },
+      );
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    renderStaffRoute('/staff/10687');
+
+    const favButton = await screen.findByRole('button', { name: 'Favorite' });
+    fireEvent.click(screen.getByRole('button', { name: 'Share' }));
+    await waitFor(() => {
+      expect(writeText).toHaveBeenCalledWith('https://anilist.co/staff/10687');
+    });
+
+    fireEvent.click(favButton);
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Favorited' })).toHaveAttribute('aria-pressed', 'true');
+    });
+    expect(
+      fetchMock.mock.calls.some(([, init]) => {
+        const payload = JSON.parse(String(init?.body ?? '{}')) as {
+          query?: string;
+          variables?: { staffId?: number };
+        };
+        return Boolean(
+          payload.query?.includes('ToggleFavourite') && payload.variables?.staffId === 10687,
+        );
+      }),
+    ).toBe(true);
   });
 });

@@ -3,6 +3,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { CharacterDetailPage } from '@/features/character/pages/CharacterDetailPage';
+import { useAuthStore } from '@/shared/stores/useAuthStore';
 import { usePrefsStore } from '@/shared/stores/usePrefsStore';
 
 function LocationEcho({ prefix }: { prefix: string }) {
@@ -27,6 +28,7 @@ function renderCharacterRoute(initialEntry: string) {
 
 describe('CharacterDetailPage', () => {
   beforeEach(() => {
+    useAuthStore.setState({ accessToken: null, viewer: null, isHydrated: true });
     usePrefsStore.setState({ activeMediaType: 'ANIME', guestShowAdult: false, isHydrated: true });
   });
 
@@ -243,5 +245,92 @@ describe('CharacterDetailPage', () => {
     fireEvent.click(showLessBtn);
     expect(screen.getByRole('button', { name: /read more/i })).toHaveAttribute('aria-expanded', 'false');
     expect(aboutText.closest('.max-h-28')).not.toBeNull();
+  });
+
+  it('copies character link via floating Share button and toggles Favorite via ToggleFavourite', async () => {
+    useAuthStore.setState({ accessToken: 'char-tok', isHydrated: true });
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, 'clipboard', {
+      value: { writeText },
+      configurable: true,
+    });
+
+    const fetchMock = vi.fn(async (_url, init) => {
+      const body = JSON.parse(String(init?.body ?? '{}')) as {
+        query?: string;
+        variables?: { characterId?: number };
+      };
+
+      if (body.query?.includes('ToggleFavourite')) {
+        return new Response(
+          JSON.stringify({ data: { ToggleFavourite: { anime: { pageInfo: { total: 1 } } } } }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } },
+        );
+      }
+
+      if (body.query?.includes('query CharacterDetail')) {
+        return new Response(
+          JSON.stringify({
+            data: {
+              Character: {
+                id: 17,
+                name: { full: 'Frieren', native: 'フリーレン', alternative: [], alternativeSpoiler: [] },
+                image: { medium: null, large: null },
+                favourites: 24500,
+                isFavourite: false,
+                isFavouriteBlocked: false,
+                description: '<p>Mage</p>',
+                gender: 'Female',
+                dateOfBirth: { year: null, month: null, day: null },
+                age: '1000+',
+                bloodType: null,
+                siteUrl: 'https://anilist.co/character/17',
+              },
+            },
+          }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } },
+        );
+      }
+
+      return new Response(
+        JSON.stringify({
+          data: {
+            Character: {
+              id: 17,
+              media: {
+                pageInfo: { total: 0, perPage: 18, currentPage: 1, lastPage: 1, hasNextPage: false },
+                edges: [],
+              },
+            },
+          },
+        }),
+        { status: 200, headers: { 'Content-Type': 'application/json' } },
+      );
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    renderCharacterRoute('/character/17');
+
+    const favButton = await screen.findByRole('button', { name: 'Favorite' });
+    fireEvent.click(screen.getByRole('button', { name: 'Share' }));
+    await waitFor(() => {
+      expect(writeText).toHaveBeenCalledWith('https://anilist.co/character/17');
+    });
+
+    fireEvent.click(favButton);
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Favorited' })).toHaveAttribute('aria-pressed', 'true');
+    });
+    expect(
+      fetchMock.mock.calls.some(([, init]) => {
+        const payload = JSON.parse(String(init?.body ?? '{}')) as {
+          query?: string;
+          variables?: { characterId?: number };
+        };
+        return Boolean(
+          payload.query?.includes('ToggleFavourite') && payload.variables?.characterId === 17,
+        );
+      }),
+    ).toBe(true);
   });
 });

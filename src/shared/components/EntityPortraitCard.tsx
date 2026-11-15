@@ -5,6 +5,7 @@ import type { ViewMode } from '@/shared/stores/usePrefsStore';
 interface EntityPortraitCardProps {
   title: string;
   subtitle?: string | null;
+  caption?: string | null;
   imageUrl?: string | null;
   badgeTopLeft?: ReactNode;
   badgeTopRight?: ReactNode;
@@ -20,6 +21,7 @@ interface EntityPortraitCardProps {
 export function EntityPortraitCard({
   title,
   subtitle,
+  caption,
   imageUrl,
   badgeTopLeft,
   badgeTopRight,
@@ -71,6 +73,11 @@ export function EntityPortraitCard({
                   {subtitle}
                 </p>
               ) : null}
+              {caption ? (
+                <p className="mt-0.5 truncate text-[11px] font-medium text-[var(--accent-ink)]">
+                  {caption}
+                </p>
+              ) : null}
             </div>
 
             {badgeTopLeft || badgeTopRight ? (
@@ -104,7 +111,7 @@ export function EntityPortraitCard({
           {portraitContent}
 
           {badgeTopLeft ? (
-            <span className="tabular-nums absolute left-2 top-2 inline-flex items-center gap-1 rounded-md bg-slate-900/75 px-1.5 py-0.5 text-[11px] font-semibold text-white backdrop-blur-xs">
+            <span className="tabular-nums absolute left-2 top-2 inline-flex items-center gap-1 rounded-md bg-slate-900/80 px-1.5 py-0.5 text-[11px] font-semibold text-white md:bg-slate-900/75 md:backdrop-blur-xs">
               {badgeTopLeft}
             </span>
           ) : null}
@@ -122,6 +129,11 @@ export function EntityPortraitCard({
         {subtitle ? (
           <p className="mt-0.5 truncate text-xs font-medium text-[var(--text-muted)]">
             {subtitle}
+          </p>
+        ) : null}
+        {caption ? (
+          <p className="mt-0.5 truncate text-[11px] font-medium text-[var(--text-secondary)]">
+            {caption}
           </p>
         ) : null}
       </button>

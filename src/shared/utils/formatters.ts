@@ -45,6 +45,57 @@ export function getCurrentAndNextSeason(date = new Date()): {
   };
 }
 
+const SEASON_ORDER: readonly MediaSeason[] = ['WINTER', 'SPRING', 'SUMMER', 'FALL'];
+
+export function getPreviousSeasonPeriod(period: SeasonPeriod): SeasonPeriod {
+  const idx = SEASON_ORDER.indexOf(period.season);
+  if (idx <= 0) {
+    return { season: 'FALL', year: period.year - 1 };
+  }
+  return { season: SEASON_ORDER[idx - 1]!, year: period.year };
+}
+
+export function formatSeasonLabel(season: MediaSeason, year: number): string {
+  const label = season.charAt(0) + season.slice(1).toLowerCase();
+  return `${label} ${year}`;
+}
+
+export function buildSequentialSeasons(
+  yearsBack = 5,
+  date = new Date(),
+): SeasonPeriod[] {
+  const { current, next } = getCurrentAndNextSeason(date);
+  const totalSeasons = Math.max(1, yearsBack) * 4 + 1;
+  const result: SeasonPeriod[] = [next];
+
+  let cursor: SeasonPeriod = current;
+  while (result.length < totalSeasons) {
+    result.push(cursor);
+    cursor = getPreviousSeasonPeriod(cursor);
+  }
+
+  return result;
+}
+
+export function parseSeasonFromParams(
+  seasonParam: string | null,
+  yearParam: string | null,
+  validSeasons: ReadonlyArray<SeasonPeriod>,
+  fallback: SeasonPeriod,
+): SeasonPeriod {
+  const normalizedSeason = seasonParam?.toUpperCase() as MediaSeason | undefined;
+  const parsedYear = Number.parseInt(yearParam ?? '', 10);
+  if (!normalizedSeason || Number.isNaN(parsedYear)) {
+    return fallback;
+  }
+
+  return (
+    validSeasons.find(
+      (item) => item.season === normalizedSeason && item.year === parsedYear,
+    ) ?? fallback
+  );
+}
+
 export function formatMediaTitle(
   title: MediaTitle | null | undefined,
   preferred: UserTitleLanguage | null | undefined = 'ROMAJI',
@@ -227,4 +278,145 @@ export function formatRelativeTime(
     return `${Math.floor(diffSeconds / 2592000)}mo ago`;
   }
   return `${Math.floor(diffSeconds / 31536000)}y ago`;
+}
+
+export interface NextAiringDisplayInfo {
+  episode: number;
+  countdown: string;
+  shortLabel: string;
+  formattedDate: string | null;
+}
+
+export function formatAiringDateTime(airingAt: number | null | undefined): string | null {
+  if (!airingAt || airingAt <= 0) {
+    return null;
+  }
+
+  return new Intl.DateTimeFormat(undefined, {
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(new Date(airingAt * 1000));
+}
+
+export function formatNextAiringInfo(
+  nextAiringEpisode:
+    | {
+        episode: number;
+        timeUntilAiring: number;
+        airingAt?: number | null;
+      }
+    | null
+    | undefined,
+  nowMs = Date.now(),
+): NextAiringDisplayInfo | null {
+  if (!nextAiringEpisode) {
+    return null;
+  }
+
+  const airingAt = nextAiringEpisode.airingAt ?? null;
+  let secondsUntil: number;
+  if (airingAt && airingAt * 1000 > nowMs) {
+    secondsUntil = Math.floor((airingAt * 1000 - nowMs) / 1000);
+  } else if (nextAiringEpisode.timeUntilAiring > 0) {
+    secondsUntil = nextAiringEpisode.timeUntilAiring;
+  } else {
+    return null;
+  }
+
+  const countdown = formatCountdown(secondsUntil);
+  return {
+    episode: nextAiringEpisode.episode,
+    countdown,
+    shortLabel: `Ep ${nextAiringEpisode.episode} in ${countdown}`,
+    formattedDate: formatAiringDateTime(airingAt),
+  };
+}
+
+const ACTIVE_BEHIND_STATUSES: ReadonlySet<MediaListStatus> = new Set([
+  'CURRENT',
+  'PLANNING',
+  'PAUSED',
+]);
+
+export function getBehindEpisodeCount(
+  upcomingEpisode: number | null | undefined,
+  progress: number | null | undefined,
+  status: MediaListStatus | null | undefined,
+): number {
+  if (!upcomingEpisode || upcomingEpisode <= 1 || !status || !ACTIVE_BEHIND_STATUSES.has(status)) {
+    return 0;
+  }
+  const airedSoFar = upcomingEpisode - 1;
+  const diff = airedSoFar - (progress ?? 0);
+  return diff > 0 ? diff : 0;
+}
+
+const SOURCE_LABELS: Record<string, string> = {
+  ORIGINAL: 'Original',
+  MANGA: 'Manga',
+  LIGHT_NOVEL: 'Light Novel',
+  VISUAL_NOVEL: 'Visual Novel',
+  VIDEO_GAME: 'Video Game',
+  OTHER: 'Other',
+  NOVEL: 'Novel',
+  DOUJINSHI: 'Doujinshi',
+  ANIME: 'Anime',
+  WEB_NOVEL: 'Web Novel',
+  LIVE_ACTION: 'Live Action',
+  GAME: 'Game',
+  COMIC: 'Comic',
+  MULTIMEDIA_PROJECT: 'Multimedia',
+  PICTURE_BOOK: 'Picture Book',
+};
+
+export function formatMediaSource(source: string | null | undefined): string {
+  if (!source) {
+    return 'Unknown';
+  }
+  return (
+    SOURCE_LABELS[source] ??
+    source
+      .split('_')
+      .map((part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
+      .join(' ')
+  );
+}
+
+const COUNTRY_LABELS: Record<string, string> = {
+  JP: 'Japan',
+  KR: 'South Korea',
+  CN: 'China',
+  TW: 'Taiwan',
+  US: 'United States',
+};
+
+export function formatCountryCode(code: string | null | undefined): string {
+  if (!code) {
+    return 'Unknown';
+  }
+  return COUNTRY_LABELS[code.toUpperCase()] ?? code.toUpperCase();
+}
+
+export function normalizeScoreTo100(
+  score: number | null | undefined,
+  scoreFormat: ScoreFormat | null | undefined = 'POINT_100',
+): number {
+  if (score === null || score === undefined || score <= 0) {
+    return 0;
+  }
+  switch (scoreFormat) {
+    case 'POINT_10_DECIMAL':
+    case 'POINT_10':
+      return score <= 10 ? score * 10 : Math.min(100, score);
+    case 'POINT_5':
+      return score <= 5 ? Math.round((score / 5) * 100) : Math.min(100, score);
+    case 'POINT_3':
+      return score <= 3 ? Math.round((score / 3) * 100) : Math.min(100, score);
+    case 'POINT_100':
+    default:
+      return Math.min(100, score);
+  }
 }

@@ -63,179 +63,199 @@ export function AppShell({ children }: AppShellProps) {
       : 0;
 
   return (
-    <div className="min-h-screen bg-[var(--bg-canvas)] text-[var(--text-primary)] md:flex">
-      {/* Desktop Sidebar */}
-      <aside className="hidden md:flex md:w-[232px] md:shrink-0 md:flex-col md:border-r md:border-[var(--border-hairline)] md:bg-[var(--bg-surface)] md:sticky md:top-0 md:h-screen">
-        <div className="flex h-16 items-center justify-between border-b border-[var(--border-hairline)] px-5">
+    <div className="relative min-h-screen bg-[var(--bg-canvas)] text-[var(--text-primary)]">
+      <div
+        aria-hidden="true"
+        className="ambient-canvas-wash pointer-events-none absolute inset-x-0 top-0 z-0 h-80 md:h-[420px]"
+      />
+
+      {/* Desktop Floating Glass Top-Navbar */}
+      <header className="pointer-events-none sticky top-0 z-40 hidden px-4 pt-3 md:block md:px-8">
+        <div className="glass-floating-nav pointer-events-auto mx-auto flex h-14 max-w-7xl items-center justify-between gap-3 rounded-2xl px-3.5 lg:px-4">
           <button
             type="button"
             onClick={() => navigate('/')}
-            className="flex items-center gap-2.5 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 rounded-lg"
+            className="flex shrink-0 items-center gap-2.5 rounded-xl px-1.5 py-1 text-left transition-crisp hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40"
           >
-            <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--accent-primary)] text-sm font-bold text-white shadow-token-xs">
+            <span className="inline-flex h-8 w-8 items-center justify-center rounded-xl bg-[var(--accent-primary)] text-sm font-bold text-white shadow-token-xs">
               A
             </span>
-            <span className="text-base font-bold tracking-tight">Aiznima</span>
+            <span className="text-[15px] font-bold tracking-tight">Aiznima</span>
           </button>
-          <button
-            type="button"
-            onClick={() => void toggleTheme()}
-            aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
-            className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-[var(--text-muted)] hover:bg-[var(--bg-subtle)] hover:text-[var(--text-primary)] transition-crisp"
-          >
-            {theme === 'dark' ? (
-              <Sun className="h-4 w-4" strokeWidth={1.75} />
-            ) : (
-              <Moon className="h-4 w-4" strokeWidth={1.75} />
-            )}
-          </button>
-        </div>
 
-        <nav aria-label="Primary navigation" className="flex-1 space-y-1 p-3">
-          {NAV_ITEMS.map((item) => {
-            const Icon = item.icon;
-            return (
-              <NavLink
-                key={item.to}
-                to={item.to}
-                end={item.end}
-                className={({ isActive }) =>
-                  `flex items-center gap-3 rounded-[10px] px-3 py-2.5 text-sm font-medium transition-crisp focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 ${
-                    isActive
-                      ? 'bg-[var(--accent-soft)] text-[var(--accent-ink)] font-semibold'
-                      : 'text-[var(--text-secondary)] hover:bg-[var(--bg-subtle)] hover:text-[var(--text-primary)]'
-                  }`
-                }
-              >
-                {({ isActive }) => (
-                  <>
-                    <Icon
-                      className="h-[18px] w-[18px] shrink-0"
-                      strokeWidth={isActive ? 2 : 1.75}
-                      aria-hidden="true"
-                    />
-                    <span>{item.label}</span>
-                  </>
-                )}
-              </NavLink>
-            );
-          })}
-
-          <NavLink
-            to="/notifications"
-            className={({ isActive }) =>
-              `flex items-center justify-between gap-2 rounded-[10px] px-3 py-2.5 text-sm font-medium transition-crisp focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 ${
-                isActive
-                  ? 'bg-[var(--accent-soft)] text-[var(--accent-ink)] font-semibold'
-                  : 'text-[var(--text-secondary)] hover:bg-[var(--bg-subtle)] hover:text-[var(--text-primary)]'
-              }`
-            }
+          <nav
+            aria-label="Primary navigation"
+            className="flex items-center gap-0.5 rounded-xl border border-[var(--border-hairline)]/70 bg-[var(--bg-subtle)]/65 p-1 dark:border-white/[0.06] dark:bg-white/[0.04]"
           >
-            {({ isActive }) => (
-              <>
-                <span className="flex items-center gap-3">
+            {NAV_ITEMS.map((item) => {
+              const Icon = item.icon;
+              return (
+                <NavLink
+                  key={item.to}
+                  to={item.to}
+                  end={item.end}
+                  className={({ isActive }) =>
+                    `inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium transition-crisp focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 lg:px-3 ${
+                      isActive
+                        ? 'bg-[var(--bg-surface)] text-[var(--text-primary)] font-semibold shadow-token-xs dark:bg-white/12 dark:text-white'
+                        : 'text-[var(--text-secondary)] hover:bg-[var(--bg-surface)]/55 hover:text-[var(--text-primary)] dark:hover:bg-white/[0.06]'
+                    }`
+                  }
+                >
+                  {({ isActive }) => (
+                    <>
+                      <Icon
+                        className={`hidden h-3.5 w-3.5 shrink-0 lg:block ${
+                          isActive ? 'text-[var(--accent-primary)]' : ''
+                        }`}
+                        strokeWidth={isActive ? 2 : 1.75}
+                        aria-hidden="true"
+                      />
+                      <span>{item.label}</span>
+                    </>
+                  )}
+                </NavLink>
+              );
+            })}
+          </nav>
+
+          <div className="flex shrink-0 items-center gap-1">
+            <NavLink
+              to="/notifications"
+              aria-label={
+                unreadNotificationCount > 0
+                  ? `Notifications (${unreadNotificationCount} unread)`
+                  : 'Notifications'
+              }
+              title="Notifications"
+              className={({ isActive }) =>
+                `relative inline-flex h-9 w-9 items-center justify-center rounded-xl transition-crisp focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 ${
+                  isActive
+                    ? 'bg-[var(--accent-soft)] text-[var(--accent-ink)]'
+                    : 'text-[var(--text-secondary)] hover:bg-[var(--bg-subtle)]/80 hover:text-[var(--text-primary)] dark:hover:bg-white/[0.08]'
+                }`
+              }
+            >
+              {({ isActive }) => (
+                <>
                   <Bell
-                    className="h-[18px] w-[18px] shrink-0"
+                    className="h-4 w-4"
                     strokeWidth={isActive ? 2 : 1.75}
                     aria-hidden="true"
                   />
-                  <span>Notifications</span>
-                </span>
-                {unreadNotificationCount > 0 ? (
-                  <span className="tabular-nums rounded-full bg-[var(--accent-primary)] px-1.5 py-0.5 text-[10px] font-bold leading-none text-white">
-                    {unreadNotificationCount > 99 ? '99+' : unreadNotificationCount}
-                  </span>
-                ) : null}
-              </>
-            )}
-          </NavLink>
+                  {unreadNotificationCount > 0 ? (
+                    <span className="tabular-nums absolute right-1 top-1 inline-flex min-w-[16px] items-center justify-center rounded-full bg-[var(--accent-primary)] px-1 text-[9px] font-bold leading-[16px] text-white shadow-token-xs">
+                      {unreadNotificationCount > 99 ? '99+' : unreadNotificationCount}
+                    </span>
+                  ) : null}
+                </>
+              )}
+            </NavLink>
 
-          <NavLink
-            to="/settings"
-            className={({ isActive }) =>
-              `flex items-center gap-3 rounded-[10px] px-3 py-2.5 text-sm font-medium transition-crisp focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 ${
-                isActive
-                  ? 'bg-[var(--accent-soft)] text-[var(--accent-ink)] font-semibold'
-                  : 'text-[var(--text-secondary)] hover:bg-[var(--bg-subtle)] hover:text-[var(--text-primary)]'
-              }`
-            }
-          >
-            {({ isActive }) => (
-              <>
+            <NavLink
+              to="/settings"
+              aria-label="Settings"
+              title="Settings"
+              className={({ isActive }) =>
+                `inline-flex h-9 w-9 items-center justify-center rounded-xl transition-crisp focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 ${
+                  isActive
+                    ? 'bg-[var(--accent-soft)] text-[var(--accent-ink)]'
+                    : 'text-[var(--text-secondary)] hover:bg-[var(--bg-subtle)]/80 hover:text-[var(--text-primary)] dark:hover:bg-white/[0.08]'
+                }`
+              }
+            >
+              {({ isActive }) => (
                 <Settings
-                  className="h-[18px] w-[18px] shrink-0"
+                  className="h-4 w-4"
                   strokeWidth={isActive ? 2 : 1.75}
                   aria-hidden="true"
                 />
-                <span>Settings</span>
-              </>
-            )}
-          </NavLink>
-        </nav>
+              )}
+            </NavLink>
 
-        <div className="border-t border-[var(--border-hairline)] p-3">
-          {isLoggedIn ? (
-            <div className="flex items-center justify-between gap-2 rounded-xl border border-[var(--border-hairline)] bg-[var(--bg-canvas)] p-2.5">
-              <button
-                type="button"
-                onClick={() => navigate('/profile')}
-                className="flex min-w-0 items-center gap-2.5 text-left"
-              >
-                {viewer?.avatar?.medium ? (
-                  <img
-                    src={viewer.avatar.medium}
-                    alt={viewer.name}
-                    className="h-8 w-8 rounded-full object-cover"
-                  />
-                ) : (
-                  <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[var(--accent-soft)] text-xs font-bold text-[var(--accent-ink)]">
-                    {viewer?.name?.charAt(0).toUpperCase() ?? 'U'}
-                  </span>
-                )}
-                <div className="min-w-0">
-                  <p className="truncate text-xs font-semibold text-[var(--text-primary)]">
-                    {viewer?.name ?? 'AniList User'}
-                  </p>
-                  <p className="text-[11px] text-[var(--text-muted)]">Synced</p>
-                </div>
-              </button>
-              <button
-                type="button"
-                onClick={() => void logout()}
-                aria-label="Log out"
-                className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-[var(--text-muted)] hover:bg-[var(--bg-subtle)] hover:text-[var(--error-text)] transition-crisp"
-              >
-                <LogOut className="h-4 w-4" strokeWidth={1.75} />
-              </button>
-            </div>
-          ) : (
-            <Button
-              variant="primary"
-              size="sm"
-              className="w-full"
-              leftIcon={<LogIn className="h-4 w-4" strokeWidth={1.75} />}
-              onClick={() =>
-                openLoginPrompt(
-                  undefined,
-                  location.pathname + location.search,
-                )
-              }
+            <button
+              type="button"
+              onClick={() => void toggleTheme()}
+              aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+              title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+              className="inline-flex h-9 w-9 items-center justify-center rounded-xl text-[var(--text-secondary)] hover:bg-[var(--bg-subtle)]/80 hover:text-[var(--text-primary)] dark:hover:bg-white/[0.08] transition-crisp focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40"
             >
-              Login with AniList
-            </Button>
-          )}
+              {theme === 'dark' ? (
+                <Sun className="h-4 w-4" strokeWidth={1.75} />
+              ) : (
+                <Moon className="h-4 w-4" strokeWidth={1.75} />
+              )}
+            </button>
+
+            <div
+              aria-hidden="true"
+              className="mx-1 h-5 w-px bg-[var(--border-hairline)]"
+            />
+
+            {isLoggedIn ? (
+              <div className="flex items-center gap-1 rounded-xl border border-[var(--border-hairline)]/80 bg-[var(--bg-surface)]/70 p-0.5 pl-1 dark:border-white/[0.08] dark:bg-white/[0.05]">
+                <button
+                  type="button"
+                  onClick={() => navigate('/profile')}
+                  aria-label={`Open profile for ${viewer?.name ?? 'AniList User'}`}
+                  className="flex items-center gap-2 rounded-lg py-0.5 pr-1.5 text-left transition-crisp hover:opacity-85 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40"
+                >
+                  {viewer?.avatar?.medium ? (
+                    <img
+                      src={viewer.avatar.medium}
+                      alt={viewer.name}
+                      className="h-7 w-7 rounded-lg object-cover"
+                    />
+                  ) : (
+                    <span className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[var(--accent-soft)] text-[11px] font-bold text-[var(--accent-ink)]">
+                      {viewer?.name?.charAt(0).toUpperCase() ?? 'U'}
+                    </span>
+                  )}
+                  <span className="hidden max-w-[96px] truncate text-xs font-semibold text-[var(--text-primary)] lg:inline">
+                    {viewer?.name ?? 'AniList User'}
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void logout()}
+                  aria-label="Log out"
+                  title="Log out"
+                  className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-[var(--text-muted)] hover:bg-[var(--bg-subtle)] hover:text-[var(--error-text)] transition-crisp focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40"
+                >
+                  <LogOut className="h-3.5 w-3.5" strokeWidth={1.75} />
+                </button>
+              </div>
+            ) : (
+              <Button
+                variant="primary"
+                size="sm"
+                aria-label="Login with AniList"
+                leftIcon={<LogIn className="h-3.5 w-3.5" strokeWidth={1.75} />}
+                onClick={() =>
+                  openLoginPrompt(
+                    undefined,
+                    location.pathname + location.search,
+                  )
+                }
+              >
+                <span className="hidden xl:inline">Login with AniList</span>
+                <span className="xl:hidden">Login</span>
+              </Button>
+            )}
+          </div>
         </div>
-      </aside>
+      </header>
 
       {/* Main Content Wrapper */}
       <div
-        className={`flex min-w-0 flex-1 flex-col ${
+        className={`relative z-10 flex min-w-0 flex-1 flex-col ${
           showMobileHeader ? '' : 'pt-safe-header md:pt-0'
         }`}
       >
+
         {/* Mobile Top Bar (Profile only) */}
         {showMobileHeader ? (
-          <header className="sticky top-0 z-30 flex items-center justify-between border-b border-[var(--border-hairline)] bg-[var(--bg-glass)] px-3.5 pb-2.5 pt-safe-header backdrop-blur-md sm:px-4 md:hidden">
+          <header className="glass-chrome-docked sticky top-0 z-30 flex items-center justify-between border-b px-3.5 pb-2.5 pt-safe-header sm:px-4 md:hidden">
             <button
               type="button"
               onClick={() => navigate('/')}
@@ -288,7 +308,7 @@ export function AppShell({ children }: AppShellProps) {
 
         {/* Global Status Banners */}
         {isOffline || isRateLimited || sessionExpiredFlag ? (
-          <div className="mx-auto w-full max-w-7xl px-3.5 pt-2.5 sm:px-4 md:px-8 md:pt-3">
+          <div className="relative z-10 mx-auto w-full max-w-7xl px-3.5 pt-2.5 sm:px-4 md:px-8 md:pt-3">
             {isOffline ? (
               <div
                 role="status"
@@ -342,7 +362,7 @@ export function AppShell({ children }: AppShellProps) {
         ) : null}
 
         {/* Main Page Area */}
-        <main className="mx-auto w-full max-w-7xl flex-1 px-3.5 pb-24 pt-2.5 sm:px-4 md:px-8 md:pb-10 md:pt-4">
+        <main className="relative z-10 mx-auto w-full max-w-7xl flex-1 px-3.5 pb-24 pt-2.5 sm:px-4 md:px-8 md:pb-14 md:pt-6">
           {children}
         </main>
       </div>
@@ -350,7 +370,7 @@ export function AppShell({ children }: AppShellProps) {
       {/* Mobile Bottom Navigation */}
       <nav
         aria-label="Mobile navigation"
-        className="fixed inset-x-0 bottom-0 z-30 border-t border-[var(--border-hairline)] bg-[var(--bg-glass)] backdrop-blur-md pb-safe-nav md:hidden"
+        className="glass-chrome-docked fixed inset-x-0 bottom-0 z-30 border-t pb-safe-nav md:hidden"
       >
         <div className="grid grid-cols-5 px-1 pt-1">
           {NAV_ITEMS.map((item) => {

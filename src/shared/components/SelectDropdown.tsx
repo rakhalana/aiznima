@@ -273,7 +273,7 @@ export function SelectDropdown<T extends string = string>({
               maxHeight: coords.maxHeight,
               zIndex: 70,
             }}
-            className={`animate-dropdown-in overflow-y-auto rounded-xl border border-[var(--border-hairline)] bg-[var(--bg-surface)] p-1.5 shadow-token-lg ${
+            className={`animate-dropdown-in glass-floating overflow-y-auto rounded-xl p-1.5 ${
               coords.openUpward ? 'origin-bottom' : 'origin-top'
             }`}
           >

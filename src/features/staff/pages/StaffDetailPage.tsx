@@ -9,6 +9,7 @@ import {
 import { NetworkError } from '@/shared/api/graphqlClient';
 import type { MediaType } from '@/shared/api/types';
 import { Button } from '@/shared/components/Button';
+import { DetailTopBar } from '@/shared/components/DetailTopBar';
 import {
   EntityDetailHero,
   type EntityMetaItem,
@@ -117,39 +118,51 @@ export function StaffDetailPage() {
     creditsQuery.data?.pages.flatMap((page) => page.Staff?.staffMedia.edges ?? []) ?? []
   ).filter((edge) => edge.node && (allowAdult || !edge.node.isAdult));
 
+  const shareUrl = staff.siteUrl ?? `https://anilist.co/staff/${staff.id}`;
+
   return (
-    <div className="space-y-5 md:space-y-6">
-      <EntityDetailHero
-        title={staff.name.full ?? 'Unknown Staff'}
-        nativeTitle={staff.name.native}
-        alternativeNames={staff.name.alternative}
-        imageUrl={staff.image?.large ?? staff.image?.medium ?? null}
-        favourites={staff.favourites}
-        siteUrl={staff.siteUrl}
-        badges={
-          <>
-            <span className="rounded-md bg-[var(--accent-soft)] px-2 py-0.5 text-[var(--accent-ink)]">
-              Staff
-            </span>
-            {staff.languageV2 ? (
-              <span className="rounded-md bg-[var(--bg-subtle)] px-2 py-0.5 text-[var(--text-secondary)]">
-                {staff.languageV2}
+    <div className="flex flex-col">
+      <DetailTopBar onBack={() => navigate(-1)} shareUrl={shareUrl} />
+
+      <div className="space-y-5 md:space-y-6">
+        <EntityDetailHero
+          title={staff.name.full ?? 'Unknown Staff'}
+          nativeTitle={staff.name.native}
+          alternativeNames={staff.name.alternative}
+          imageUrl={staff.image?.large ?? staff.image?.medium ?? null}
+          favourites={staff.favourites}
+          siteUrl={staff.siteUrl}
+          favoriteTarget={{
+            kind: 'STAFF',
+            id: staff.id,
+            returnTo: `/staff/${staff.id}`,
+            isFavourite: Boolean(staff.isFavourite),
+            isBlocked: Boolean(staff.isFavouriteBlocked),
+          }}
+          badges={
+            <>
+              <span className="rounded-md bg-[var(--accent-soft)] px-2 py-0.5 text-[var(--accent-ink)]">
+                Staff
               </span>
-            ) : null}
-            {(staff.primaryOccupations ?? []).slice(0, 2).map((occ) => (
-              <span
-                key={occ}
-                className="rounded-md border border-[var(--border-hairline)] bg-[var(--bg-canvas)] px-2 py-0.5 text-[var(--text-secondary)]"
-              >
-                {occ}
-              </span>
-            ))}
-          </>
-        }
-        metaItems={metaItems}
-        descriptionHtml={staff.description}
-        fallbackIcon={<Briefcase className="h-7 w-7" strokeWidth={1.5} />}
-      />
+              {staff.languageV2 ? (
+                <span className="rounded-md bg-[var(--bg-subtle)] px-2 py-0.5 text-[var(--text-secondary)]">
+                  {staff.languageV2}
+                </span>
+              ) : null}
+              {(staff.primaryOccupations ?? []).slice(0, 2).map((occ) => (
+                <span
+                  key={occ}
+                  className="rounded-md border border-[var(--border-hairline)] bg-[var(--bg-canvas)] px-2 py-0.5 text-[var(--text-secondary)]"
+                >
+                  {occ}
+                </span>
+              ))}
+            </>
+          }
+          metaItems={metaItems}
+          descriptionHtml={staff.description}
+          fallbackIcon={<Briefcase className="h-7 w-7" strokeWidth={1.5} />}
+        />
 
       <div
         role="tablist"
@@ -226,7 +239,7 @@ export function StaffDetailPage() {
                             </div>
                           )}
                           {edge.characterRole ? (
-                            <span className="absolute left-1.5 top-1.5 rounded-md bg-slate-900/75 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white backdrop-blur-xs">
+                            <span className="absolute left-1.5 top-1.5 rounded-md bg-slate-900/80 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white md:bg-slate-900/75 md:backdrop-blur-xs">
                               {edge.characterRole}
                             </span>
                           ) : null}
@@ -372,6 +385,7 @@ export function StaffDetailPage() {
           )}
         </div>
       )}
+      </div>
     </div>
   );
 }

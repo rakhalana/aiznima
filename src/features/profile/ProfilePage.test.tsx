@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ProfilePage } from '@/features/profile/pages/ProfilePage';
@@ -146,5 +146,218 @@ describe('ProfilePage', () => {
       ).not.toBeInTheDocument();
     });
     expect(useAuthStore.getState().viewer?.options?.titleLanguage).toBe('ENGLISH');
+  });
+
+  it('switches to Deep Stats tab, displays Taste DNA + Genre Matrix + Studio Loyalty, and opens local drill-down modal', async () => {
+    const viewer = makeUser({ name: 'DeepStatsUser' });
+    useAuthStore.setState({
+      accessToken: 'token-deep',
+      expiresAt: Date.now() + 60_000,
+      viewer,
+    });
+
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockImplementation(async (_url, init) => {
+        const body = JSON.parse(String(init?.body ?? '{}')) as {
+          query?: string;
+          variables?: { type?: string };
+        };
+
+        if (body.query?.includes('ViewerDeepStatistics')) {
+          return new Response(
+            JSON.stringify({
+              data: {
+                Viewer: {
+                  id: 7,
+                  name: 'DeepStatsUser',
+                  statistics: {
+                    anime: {
+                      count: 18,
+                      meanScore: 84,
+                      standardDeviation: 11.2,
+                      minutesWatched: 6400,
+                      episodesWatched: 270,
+                      genres: [
+                        { genre: 'Action', count: 10, meanScore: 76, minutesWatched: 3200, mediaIds: [101] },
+                        { genre: 'Drama', count: 6, meanScore: 91, minutesWatched: 1800, mediaIds: [102] },
+                        { genre: 'Psychological', count: 4, meanScore: 93, minutesWatched: 1200, mediaIds: [102] },
+                      ],
+                      tags: [
+                        {
+                          count: 4,
+                          meanScore: 92,
+                          minutesWatched: 1200,
+                          mediaIds: [102],
+                          tag: { id: 50, name: 'Time Travel', category: 'Theme-Sci-Fi', isGeneralSpoiler: false, isAdult: false },
+                        },
+                      ],
+                      studios: [
+                        { count: 4, meanScore: 91, minutesWatched: 1300, mediaIds: [102], studio: { id: 11, name: 'Madhouse', isAnimationStudio: true } },
+                      ],
+                      voiceActors: [],
+                      staff: [],
+                      formats: [{ format: 'TV', count: 16, meanScore: 84, minutesWatched: 5800, mediaIds: [101, 102] }],
+                      statuses: [{ status: 'COMPLETED', count: 15, meanScore: 85, minutesWatched: 5400, mediaIds: [101, 102] }],
+                      scores: [{ score: 90, count: 6, minutesWatched: 1800, mediaIds: [102] }],
+                      lengths: [{ length: '11-25', count: 12, meanScore: 86, minutesWatched: 4200, mediaIds: [102] }],
+                      releaseYears: [{ releaseYear: 2011, count: 5, meanScore: 92, minutesWatched: 1600, mediaIds: [102] }],
+                      countries: [{ country: 'JP', count: 18, meanScore: 84, minutesWatched: 6400, mediaIds: [101, 102] }],
+                    },
+                    manga: {
+                      count: 5,
+                      meanScore: 89,
+                      standardDeviation: 8.5,
+                      chaptersRead: 210,
+                      volumesRead: 20,
+                      genres: [{ genre: 'Mystery', count: 4, meanScore: 90, chaptersRead: 160, mediaIds: [201] }],
+                      tags: [],
+                      staff: [{ count: 3, meanScore: 91, chaptersRead: 140, mediaIds: [201], staff: { id: 99, name: { full: 'Naoki Urasawa', native: null }, primaryOccupations: ['Mangaka'], image: null } }],
+                      formats: [{ format: 'MANGA', count: 5, meanScore: 89, chaptersRead: 210, mediaIds: [201] }],
+                      statuses: [],
+                      scores: [],
+                      lengths: [],
+                      releaseYears: [],
+                      countries: [],
+                    },
+                  },
+                },
+              },
+            }),
+            { status: 200, headers: { 'Content-Type': 'application/json' } },
+          );
+        }
+
+        if (body.query?.includes('UserMediaListCollection')) {
+          const isManga = body.variables?.type === 'MANGA';
+          return new Response(
+            JSON.stringify({
+              data: {
+                MediaListCollection: {
+                  hasNextChunk: false,
+                  lists: [
+                    {
+                      name: 'Completed',
+                      isCustomList: false,
+                      status: 'COMPLETED',
+                      entries: isManga
+                        ? [
+                            {
+                              id: 901,
+                              mediaId: 201,
+                              status: 'COMPLETED',
+                              score: 90,
+                              progress: 162,
+                              progressVolumes: 18,
+                              repeat: 0,
+                              private: false,
+                              notes: null,
+                              startedAt: null,
+                              completedAt: null,
+                              updatedAt: 1700000000,
+                              media: {
+                                id: 201,
+                                idMal: null,
+                                type: 'MANGA',
+                                format: 'MANGA',
+                                status: 'FINISHED',
+                                title: { romaji: 'Monster', english: 'Monster', native: null },
+                                coverImage: null,
+                                bannerImage: null,
+                                episodes: null,
+                                chapters: 162,
+                                volumes: 18,
+                                duration: null,
+                                source: 'ORIGINAL',
+                                season: null,
+                                seasonYear: 1994,
+                                meanScore: 91,
+                                popularity: 210000,
+                                genres: ['Mystery'],
+                                isAdult: false,
+                                nextAiringEpisode: null,
+                                mediaListEntry: null,
+                              },
+                            },
+                          ]
+                        : [
+                            {
+                              id: 801,
+                              mediaId: 102,
+                              status: 'COMPLETED',
+                              score: 92,
+                              progress: 24,
+                              progressVolumes: null,
+                              repeat: 1,
+                              private: false,
+                              notes: null,
+                              startedAt: null,
+                              completedAt: null,
+                              updatedAt: 1700000000,
+                              media: {
+                                id: 102,
+                                idMal: null,
+                                type: 'ANIME',
+                                format: 'TV',
+                                status: 'FINISHED',
+                                title: { romaji: 'Steins;Gate', english: 'Steins;Gate', native: null },
+                                coverImage: null,
+                                bannerImage: null,
+                                episodes: 24,
+                                chapters: null,
+                                volumes: null,
+                                duration: 24,
+                                source: 'VISUAL_NOVEL',
+                                season: 'SPRING',
+                                seasonYear: 2011,
+                                meanScore: 91,
+                                popularity: 600000,
+                                genres: ['Drama', 'Psychological'],
+                                isAdult: false,
+                                nextAiringEpisode: null,
+                                mediaListEntry: null,
+                              },
+                            },
+                          ],
+                    },
+                  ],
+                },
+              },
+            }),
+            { status: 200, headers: { 'Content-Type': 'application/json' } },
+          );
+        }
+
+        return new Response(JSON.stringify({ data: {} }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }),
+    );
+
+    renderProfileRoute('/profile');
+
+    fireEvent.click(screen.getByRole('tab', { name: /deep stats/i }));
+
+    expect(
+      await screen.findByText(/Genre Matrix \(Quantity vs Quality\)/i),
+    ).toBeInTheDocument();
+    expect(screen.getByText('2010–2014')).toBeInTheDocument();
+    expect(screen.getAllByText('Visual Novel').length).toBeGreaterThan(0);
+    expect(screen.getByText('Madhouse')).toBeInTheDocument();
+    expect(screen.getByText('Time Travel')).toBeInTheDocument();
+
+    // Local drill-down modal opens without leaving /profile
+    fireEvent.click(screen.getByRole('button', { name: /Madhouse/i }));
+    const modal = await screen.findByRole('dialog', { name: /Madhouse \(4\)/i });
+    expect(within(modal).getByText('Steins;Gate')).toBeInTheDocument();
+    fireEvent.click(within(modal).getByRole('button', { name: /close modal/i }));
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    });
+
+    // Switch to Manga deep stats
+    fireEvent.click(screen.getByRole('tab', { name: 'Manga' }));
+    expect(await screen.findByText('Naoki Urasawa')).toBeInTheDocument();
   });
 });

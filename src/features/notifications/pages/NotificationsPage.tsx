@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from 'react';
 import {
   ArrowLeft,
   Bell,
-  CheckCheck,
   ChevronRight,
   ExternalLink,
   Film,
@@ -13,7 +12,6 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { AuthGuard } from '@/app/layouts/AuthGuard';
 import {
-  useMarkNotificationsReadMutation,
   useNotificationsInfiniteQuery,
   useUnreadNotificationCount,
 } from '@/features/notifications/api/notificationQueries';
@@ -30,7 +28,6 @@ import { MediaRowSkeleton } from '@/shared/components/Skeleton';
 import { EmptyState, ErrorState } from '@/shared/components/StateFeedback';
 import { useIsAdultFilter } from '@/shared/hooks/useIsAdultFilter';
 import { usePreferredTitleLanguage } from '@/shared/hooks/usePreferredTitleLanguage';
-import { useToastStore } from '@/shared/stores/useToastStore';
 
 function renderCategoryIcon(item: PresentedNotification) {
   switch (item.kind) {
@@ -51,7 +48,6 @@ function NotificationsContent() {
   const navigate = useNavigate();
   const preferredLanguage = usePreferredTitleLanguage();
   const { allowAdult } = useIsAdultFilter();
-  const addToast = useToastStore((state) => state.addToast);
 
   const [category, setCategory] = useState<NotificationFilterCategory>('ALL');
   const liveUnreadCount = useUnreadNotificationCount();
@@ -75,26 +71,12 @@ function NotificationsContent() {
     fetchNextPage,
   } = useNotificationsInfiniteQuery(activeFilter.types);
 
-  const markReadMutation = useMarkNotificationsReadMutation();
-
   const items = useMemo(() => {
     const raw = data?.pages.flatMap((page) => page.Page.notifications) ?? [];
     return raw
       .map((notification) => presentNotification(notification, preferredLanguage))
       .filter((item) => allowAdult || !item.isAdultMedia);
   }, [data, preferredLanguage, allowAdult]);
-
-  const handleMarkAllRead = () => {
-    markReadMutation.mutate(undefined, {
-      onSuccess() {
-        setUnreadHighlightCount(0);
-        addToast({ variant: 'success', message: 'All notifications marked as read.' });
-      },
-      onError() {
-        addToast({ variant: 'error', message: 'Failed to mark notifications as read.' });
-      },
-    });
-  };
 
   const handleItemClick = (item: PresentedNotification) => {
     if (!item.target) {
@@ -124,16 +106,6 @@ function NotificationsContent() {
           </p>
         </div>
 
-        <Button
-          variant="secondary"
-          size="sm"
-          onClick={handleMarkAllRead}
-          isLoading={markReadMutation.isPending}
-          disabled={liveUnreadCount === 0}
-          leftIcon={<CheckCheck className="h-3.5 w-3.5" strokeWidth={1.75} />}
-        >
-          Mark all read
-        </Button>
       </header>
 
       <div
@@ -150,11 +122,10 @@ function NotificationsContent() {
               role="tab"
               aria-selected={isSelected}
               onClick={() => setCategory(option.key)}
-              className={`shrink-0 rounded-full border px-3 py-1.5 text-xs font-semibold transition-crisp ${
-                isSelected
+              className={`shrink-0 rounded-full border px-3 py-1.5 text-xs font-semibold transition-crisp ${isSelected
                   ? 'border-[var(--accent-primary)] bg-[var(--accent-soft)] text-[var(--accent-ink)]'
                   : 'border-[var(--border-hairline)] bg-[var(--bg-surface)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-              }`}
+                }`}
             >
               {option.label}
             </button>
@@ -206,18 +177,16 @@ function NotificationsContent() {
                 type="button"
                 disabled={!clickable}
                 onClick={() => handleItemClick(item)}
-                className={`group flex w-full items-center gap-3 rounded-xl border p-3 text-left transition-crisp focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 ${
-                  isUnread
+                className={`group flex w-full items-center gap-3 rounded-xl border p-3 text-left transition-crisp focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 ${isUnread
                     ? 'border-[var(--accent-primary)]/35 bg-[var(--accent-soft)]/50'
                     : 'border-[var(--border-hairline)] bg-[var(--bg-surface)]'
-                } ${clickable ? 'hover:bg-[var(--bg-subtle)] cursor-pointer' : 'cursor-default'}`}
+                  } ${clickable ? 'hover:bg-[var(--bg-subtle)] cursor-pointer' : 'cursor-default'}`}
               >
                 <div
-                  className={`relative shrink-0 overflow-hidden border border-[var(--border-hairline)] bg-[var(--bg-subtle)] ${
-                    item.imageShape === 'avatar'
+                  className={`relative shrink-0 overflow-hidden border border-[var(--border-hairline)] bg-[var(--bg-subtle)] ${item.imageShape === 'avatar'
                       ? 'h-11 w-11 rounded-full'
                       : 'h-14 w-10 rounded-md'
-                  }`}
+                    }`}
                 >
                   {item.imageUrl ? (
                     <img
@@ -293,7 +262,7 @@ export function NotificationsPage() {
   const navigate = useNavigate();
 
   return (
-    <div className="space-y-4 md:space-y-5">
+    <div className="mx-auto max-w-4xl space-y-4 md:space-y-5">
       <button
         type="button"
         onClick={() => navigate(-1)}

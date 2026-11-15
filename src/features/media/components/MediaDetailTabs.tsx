@@ -321,7 +321,7 @@ export function MediaDetailTabs({
                     </div>
                   )}
                   {edge.role ? (
-                    <span className="absolute left-1.5 top-1.5 rounded-md bg-slate-900/75 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white backdrop-blur-xs">
+                    <span className="absolute left-1.5 top-1.5 rounded-md bg-slate-900/80 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white md:bg-slate-900/75 md:backdrop-blur-xs">
                       {edge.role}
                     </span>
                   ) : null}

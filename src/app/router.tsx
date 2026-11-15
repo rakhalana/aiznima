@@ -2,6 +2,8 @@ import { Route, Routes } from 'react-router-dom';
 import { AuthCallbackPage } from '@/features/auth/pages/AuthCallbackPage';
 import { CharacterDetailPage } from '@/features/character/pages/CharacterDetailPage';
 import { DiscoverPage } from '@/features/discover/pages/DiscoverPage';
+import { RecommendedPage } from '@/features/discover/pages/RecommendedPage';
+import { SeasonalPage } from '@/features/discover/pages/SeasonalPage';
 import { MediaDetailPage } from '@/features/media/pages/MediaDetailPage';
 import { MyListPage } from '@/features/my-list/pages/MyListPage';
 import { NotificationsPage } from '@/features/notifications/pages/NotificationsPage';
@@ -18,6 +20,8 @@ export function AppRoutes() {
   return (
     <Routes>
       <Route path="/" element={<DiscoverPage />} />
+      <Route path="/discover/recommended" element={<RecommendedPage />} />
+      <Route path="/discover/seasonal" element={<SeasonalPage />} />
       <Route path="/search" element={<SearchPage />} />
       <Route path="/schedule" element={<SchedulePage />} />
       <Route path="/media/:id" element={<MediaDetailPage />} />

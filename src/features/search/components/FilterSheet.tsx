@@ -3,6 +3,7 @@ import {
   useSearchMetadataQuery,
   type SearchFilters,
 } from '@/features/search/api/searchQueries';
+import { extractAvailableTagCategories } from '@/features/search/utils/searchHelpers';
 import type {
   CharacterSort,
   MediaFormat,
@@ -100,6 +101,10 @@ export function FilterSheet({
   ];
   const availableGenres = (meta?.GenreCollection ?? []).filter(
     (g) => allowAdult || g !== 'Hentai',
+  );
+  const availableTagCategories = extractAvailableTagCategories(
+    meta?.MediaTagCollection,
+    allowAdult,
   );
 
   const toggleItem = (list: string[], value: string): string[] =>
@@ -224,6 +229,39 @@ export function FilterSheet({
                           }`}
                       >
                         {genre}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            ) : null}
+
+            {availableTagCategories.length > 0 ? (
+              <div className="space-y-1.5">
+                <span className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+                  Tag Categories
+                </span>
+                <div className="flex flex-wrap gap-1.5">
+                  {availableTagCategories.map((category) => {
+                    const active = draft.tagCategories.includes(category.value);
+                    return (
+                      <button
+                        key={category.value}
+                        type="button"
+                        aria-pressed={active}
+                        onClick={() =>
+                          setDraft((prev) => ({
+                            ...prev,
+                            tagCategories: toggleItem(prev.tagCategories, category.value),
+                          }))
+                        }
+                        className={`rounded-lg border px-2.5 py-1 text-xs font-medium transition-crisp ${
+                          active
+                            ? 'border-[var(--accent-primary)] bg-[var(--accent-soft)] text-[var(--accent-ink)]'
+                            : 'border-[var(--border-hairline)] bg-[var(--bg-canvas)] text-[var(--text-secondary)]'
+                        }`}
+                      >
+                        {category.label}
                       </button>
                     );
                   })}

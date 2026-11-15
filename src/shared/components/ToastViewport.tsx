@@ -34,7 +34,7 @@ export function ToastViewport() {
           <div
             key={toast.id}
             role="status"
-            className="pointer-events-auto flex items-center gap-2.5 rounded-xl border border-[var(--border-hairline)] bg-[var(--bg-surface)] px-3.5 py-2.5 shadow-token-sm"
+            className="glass-floating pointer-events-auto flex items-center gap-2.5 rounded-xl px-3.5 py-2.5"
           >
             <Icon
               className={`h-4 w-4 shrink-0 ${VARIANT_ACCENTS[toast.variant]}`}

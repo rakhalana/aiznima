@@ -7,11 +7,14 @@ import {
   formatMeanScore,
   formatMediaFormat,
   formatMediaTitle,
+  formatNextAiringInfo,
 } from '@/shared/utils/formatters';
 
 interface MediaCardProps {
   media: MediaSummary;
   preferredLanguage?: UserTitleLanguage | null;
+  subtitleHint?: string | null;
+  statusLabelOverride?: string | null;
   layout?: ViewMode;
   onSelect?: (media: MediaSummary) => void;
 }
@@ -19,6 +22,8 @@ interface MediaCardProps {
 export function MediaCard({
   media,
   preferredLanguage = 'ROMAJI',
+  subtitleHint = null,
+  statusLabelOverride = null,
   layout = 'grid',
   onSelect,
 }: MediaCardProps) {
@@ -41,6 +46,11 @@ export function MediaCard({
           : 'Manga';
 
   const statusEntry = media.mediaListEntry?.status;
+  const statusBadgeLabel =
+    statusLabelOverride ??
+    (statusEntry ? formatListStatusLabel(statusEntry, media.type) : null);
+  const nextAiring =
+    media.type === 'ANIME' ? formatNextAiringInfo(media.nextAiringEpisode) : null;
 
   const posterContent =
     coverUrl && !imgError ? (
@@ -85,10 +95,20 @@ export function MediaCard({
               <h3 className="line-clamp-2 text-sm font-semibold leading-snug text-[var(--text-primary)] group-hover:text-[var(--accent-primary)] transition-colors">
                 {title}
               </h3>
+              {subtitleHint ? (
+                <p className="truncate text-[11px] font-medium text-[var(--accent-ink)]">
+                  {subtitleHint}
+                </p>
+              ) : null}
               <p className="truncate text-xs font-medium text-[var(--text-muted)] tabular-nums">
                 {formatMediaFormat(media.format)} · {countUnit}
                 {media.seasonYear ? ` · ${media.seasonYear}` : ''}
               </p>
+              {nextAiring ? (
+                <p className="truncate text-[11px] font-medium text-[var(--accent-primary)] tabular-nums">
+                  {nextAiring.shortLabel}
+                </p>
+              ) : null}
             </div>
 
             <div className="flex flex-wrap items-center gap-1.5">
@@ -99,9 +119,9 @@ export function MediaCard({
                 </span>
               ) : null}
 
-              {statusEntry ? (
+              {statusBadgeLabel ? (
                 <span className="rounded-md bg-[var(--accent-soft)] px-1.5 py-0.5 text-[10px] font-semibold text-[var(--accent-ink)]">
-                  {formatListStatusLabel(statusEntry, media.type)}
+                  {statusBadgeLabel}
                 </span>
               ) : null}
 
@@ -131,15 +151,15 @@ export function MediaCard({
           {posterContent}
 
           {media.meanScore ? (
-            <span className="tabular-nums absolute left-2 top-2 inline-flex items-center gap-1 rounded-md bg-slate-900/75 px-1.5 py-0.5 text-[11px] font-semibold text-white backdrop-blur-xs">
+            <span className="tabular-nums absolute left-2 top-2 inline-flex items-center gap-1 rounded-md bg-slate-900/80 px-1.5 py-0.5 text-[11px] font-semibold text-white md:bg-slate-900/75 md:backdrop-blur-xs">
               <Star className="h-3 w-3 fill-amber-400 text-amber-400" strokeWidth={1.75} aria-hidden="true" />
               {formatMeanScore(media.meanScore)}
             </span>
           ) : null}
 
-          {statusEntry ? (
+          {statusBadgeLabel ? (
             <span className="absolute right-2 top-2 rounded-md bg-[var(--accent-primary)] px-1.5 py-0.5 text-[10px] font-semibold text-white shadow-token-xs">
-              {formatListStatusLabel(statusEntry, media.type)}
+              {statusBadgeLabel}
             </span>
           ) : null}
         </div>
@@ -147,9 +167,19 @@ export function MediaCard({
         <h3 className="mt-2 line-clamp-2 text-sm font-semibold leading-snug text-[var(--text-primary)] group-hover:text-[var(--accent-primary)] transition-colors">
           {title}
         </h3>
+        {subtitleHint ? (
+          <p className="mt-0.5 truncate text-[11px] font-medium text-[var(--accent-ink)]">
+            {subtitleHint}
+          </p>
+        ) : null}
         <p className="mt-0.5 truncate text-xs font-medium text-[var(--text-muted)] tabular-nums">
           {formatMediaFormat(media.format)} · {countUnit}
         </p>
+        {nextAiring ? (
+          <p className="mt-0.5 truncate text-[11px] font-medium text-[var(--accent-primary)] tabular-nums">
+            {nextAiring.shortLabel}
+          </p>
+        ) : null}
       </button>
     </article>
   );

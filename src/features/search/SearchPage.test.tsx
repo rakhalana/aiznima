@@ -231,6 +231,30 @@ describe('SearchPage', () => {
                       name: { full: 'Frieren', native: 'フリーレン' },
                       image: { medium: null, large: null },
                       favourites: 24500,
+                      media: {
+                        nodes: [
+                          {
+                            id: 154587,
+                            type: 'ANIME',
+                            isAdult: false,
+                            title: {
+                              romaji: 'Sousou no Frieren',
+                              english: 'Frieren: Beyond Journey’s End',
+                              native: '葬送のフリーレン',
+                            },
+                          },
+                          {
+                            id: 118586,
+                            type: 'MANGA',
+                            isAdult: false,
+                            title: {
+                              romaji: 'Sousou no Frieren Manga',
+                              english: 'Frieren Manga',
+                              native: null,
+                            },
+                          },
+                        ],
+                      },
                     },
                   ],
                 },
@@ -351,6 +375,9 @@ describe('SearchPage', () => {
     // Switch to Character
     fireEvent.click(screen.getByRole('tab', { name: 'Character' }));
     expect(await screen.findByText('Frieren')).toBeInTheDocument();
+    // CharacterCard shows strictly 1 parent anime/manga origin
+    expect(screen.getByText('Anime · Sousou no Frieren')).toBeInTheDocument();
+    expect(screen.queryByText(/Sousou no Frieren Manga/i)).not.toBeInTheDocument();
 
     // Toggle grid <-> row view beside search input
     fireEvent.click(screen.getByRole('button', { name: /switch to row view/i }));
@@ -388,5 +415,214 @@ describe('SearchPage', () => {
     expect(await screen.findByText('Rakha', {}, { timeout: 2000 })).toBeInTheDocument();
     fireEvent.click(screen.getByText('Rakha'));
     expect(screen.getByTestId('route-echo')).toHaveTextContent('/user/Rakha');
+  });
+
+  it('finds Anime via character names with fallback and shows matched Romaji/Native hints', async () => {
+    useAuthStore.setState({
+      accessToken: 'test-token',
+      isHydrated: true,
+      viewer: {
+        id: 1,
+        name: 'Tester',
+        about: null,
+        avatar: null,
+        bannerImage: null,
+        siteUrl: null,
+        options: {
+          titleLanguage: 'ENGLISH',
+          displayAdultContent: false,
+          includeAdultContentInSearch: false,
+          profileColor: null,
+        },
+        mediaListOptions: null,
+        statistics: null,
+      },
+    });
+
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockImplementation(async (_url, init) => {
+        const body = JSON.parse(String(init?.body ?? '{}')) as {
+          query?: string;
+          variables?: { search?: string };
+        };
+
+        if (body.query?.includes('SearchMetaCollections')) {
+          return new Response(
+            JSON.stringify({ data: { GenreCollection: ['Action'], MediaTagCollection: [] } }),
+            { status: 200, headers: { 'Content-Type': 'application/json' } },
+          );
+        }
+
+        if (body.variables?.search === 'Levi') {
+          return new Response(
+            JSON.stringify({
+              data: {
+                Page: {
+                  pageInfo: { total: 0, perPage: 24, currentPage: 1, lastPage: 1, hasNextPage: false },
+                  media: [],
+                },
+                charMatches: {
+                  characters: [
+                    {
+                      id: 45627,
+                      name: { full: 'Levi', native: 'リヴァイ' },
+                      media: {
+                        nodes: [
+                          {
+                            ...makeSearchMedia(16498, 'Shingeki no Kyojin'),
+                            title: {
+                              romaji: 'Shingeki no Kyojin',
+                              english: 'Attack on Titan',
+                              native: '進撃の巨人',
+                            },
+                          },
+                        ],
+                      },
+                    },
+                  ],
+                },
+              },
+            }),
+            { status: 200, headers: { 'Content-Type': 'application/json' } },
+          );
+        }
+
+        if (body.variables?.search === '葬送のフリーレン') {
+          return new Response(
+            JSON.stringify({
+              data: {
+                Page: {
+                  pageInfo: { total: 1, perPage: 24, currentPage: 1, lastPage: 1, hasNextPage: false },
+                  media: [
+                    {
+                      ...makeSearchMedia(154587, 'Sousou no Frieren'),
+                      title: {
+                        romaji: 'Sousou no Frieren',
+                        english: 'Frieren: Beyond Journey’s End',
+                        native: '葬送のフリーレン',
+                      },
+                    },
+                  ],
+                },
+                charMatches: { characters: [] },
+              },
+            }),
+            { status: 200, headers: { 'Content-Type': 'application/json' } },
+          );
+        }
+
+        return new Response(
+          JSON.stringify({
+            data: {
+              Page: {
+                pageInfo: { total: 0, perPage: 24, currentPage: 1, lastPage: 1, hasNextPage: false },
+                media: [],
+              },
+              charMatches: { characters: [] },
+            },
+          }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } },
+        );
+      }),
+    );
+
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    render(
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter initialEntries={['/search?q=Levi+Ackerman']}>
+          <SearchPage />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+
+    // Character-based Anime lookup triggers token fallback ('Levi') -> Attack on Titan + Char hint
+    expect(await screen.findByText('Attack on Titan')).toBeInTheDocument();
+    expect(screen.getByText('Char: Levi')).toBeInTheDocument();
+
+    // Typing native title under ENGLISH preference returns Frieren and displays native hint
+    const input = screen.getByPlaceholderText(/search anime titles/i);
+    fireEvent.change(input, { target: { value: '葬送のフリーレン' } });
+
+    expect(
+      await screen.findByText('Frieren: Beyond Journey’s End', {}, { timeout: 2000 }),
+    ).toBeInTheDocument();
+    expect(screen.getByText('葬送のフリーレン')).toBeInTheDocument();
+  });
+
+  it('filters media by cleaned Tag Categories labels while hiding Sexual Content in safe mode', async () => {
+    const fetchMock = vi.fn().mockImplementation(async (_url, init) => {
+      const body = JSON.parse(String(init?.body ?? '{}')) as {
+        query?: string;
+        variables?: { tagCategory_in?: string[] };
+      };
+
+      if (body.query?.includes('SearchMetaCollections')) {
+        return new Response(
+          JSON.stringify({
+            data: {
+              GenreCollection: ['Sports'],
+              MediaTagCollection: [
+                { id: 10, name: 'Basketball', category: 'Theme-Game-Sport', isAdult: false },
+                { id: 11, name: 'Shogi', category: 'Theme-Game-Card & Board Game', isAdult: false },
+                { id: 12, name: 'Real Robot', category: 'Theme-Sci-Fi-Mecha', isAdult: false },
+                { id: 13, name: 'Adult Tag', category: 'Sexual Content', isAdult: true },
+              ],
+            },
+          }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } },
+        );
+      }
+
+      const items = body.variables?.tagCategory_in?.includes('Theme-Game-Sport')
+        ? [makeSearchMedia(77, 'Haikyuu!!')]
+        : [makeSearchMedia(1, 'Steins;Gate')];
+
+      return new Response(
+        JSON.stringify({
+          data: {
+            Page: {
+              pageInfo: { total: items.length, perPage: 24, currentPage: 1, lastPage: 1, hasNextPage: false },
+              media: items,
+            },
+          },
+        }),
+        { status: 200, headers: { 'Content-Type': 'application/json' } },
+      );
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    render(
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter initialEntries={['/search']}>
+          <Routes>
+            <Route path="/search" element={<SearchPage />} />
+          </Routes>
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+
+    expect(await screen.findByText('Steins;Gate')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: /filters/i }));
+
+    expect(await screen.findByText('Game Sport')).toBeInTheDocument();
+    expect(screen.getByText('Card & Board Game')).toBeInTheDocument();
+    expect(screen.getByText('Mecha')).toBeInTheDocument();
+    expect(screen.queryByText('Sexual Content')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Game Sport' }));
+    fireEvent.click(screen.getByRole('button', { name: /apply filters/i }));
+
+    expect(await screen.findByText('Haikyuu!!')).toBeInTheDocument();
+    expect(
+      fetchMock.mock.calls.some(([, init]) => {
+        const parsed = JSON.parse(String(init?.body ?? '{}')) as {
+          variables?: { tagCategory_in?: string[] };
+        };
+        return parsed.variables?.tagCategory_in?.includes('Theme-Game-Sport') ?? false;
+      }),
+    ).toBe(true);
   });
 });

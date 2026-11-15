@@ -43,11 +43,11 @@ export function BottomSheetOrModal({
       aria-label={title}
     >
       <div
-        className="fixed inset-0 bg-slate-900/35 backdrop-blur-[2px]"
+        className="glass-scrim fixed inset-0"
         onClick={onClose}
         aria-hidden="true"
       />
-      <div className="animate-sheet-in relative z-10 flex max-h-[88vh] w-full flex-col rounded-t-2xl border border-[var(--border-hairline)] bg-[var(--bg-surface)] shadow-token-lg pb-safe md:max-h-[85vh] md:max-w-lg md:rounded-2xl">
+      <div className="animate-sheet-in glass-modal relative z-10 flex max-h-[88vh] w-full flex-col rounded-t-2xl pb-safe md:max-h-[85vh] md:max-w-lg md:rounded-2xl">
         <div className="flex justify-center pt-2.5 md:hidden" aria-hidden="true">
           <div className="h-1 w-10 rounded-full bg-[var(--border-strong)]" />
         </div>

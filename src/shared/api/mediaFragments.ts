@@ -19,6 +19,8 @@ export const MEDIA_SUMMARY_FIELDS = `
   episodes
   chapters
   volumes
+  duration
+  source
   season
   seasonYear
   meanScore

@@ -13,6 +13,7 @@ const STUDIO_DETAIL_QUERY = `
     Studio(id: $id) {
       ${STUDIO_SUMMARY_FIELDS}
       siteUrl
+      isFavourite
     }
   }
 `;

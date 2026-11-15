@@ -1,6 +1,6 @@
-import { useEffect } from 'react';
+import { useEffect, useLayoutEffect } from 'react';
 import { QueryClientProvider } from '@tanstack/react-query';
-import { BrowserRouter, useNavigate } from 'react-router-dom';
+import { BrowserRouter, useLocation, useNavigate } from 'react-router-dom';
 import { useViewerQuery } from '@/features/auth/api/viewerQuery';
 import { LoginPromptModal } from '@/features/auth/components/LoginPromptModal';
 import { completeOAuthLogin, startAniListLogin } from '@/features/auth/services/oauth';
@@ -16,11 +16,29 @@ import { AppShell } from './layouts/AppShell';
 import { AppRoutes } from './router';
 
 function AppRuntimeEffects() {
+  const location = useLocation();
   const navigate = useNavigate();
   const hydrateAuth = useAuthStore((state) => state.hydrate);
   const hydratePrefs = usePrefsStore((state) => state.hydrate);
 
   useViewerQuery();
+
+  useEffect(() => {
+    if (!('scrollRestoration' in window.history)) {
+      return undefined;
+    }
+    const previous = window.history.scrollRestoration;
+    window.history.scrollRestoration = 'manual';
+    return () => {
+      window.history.scrollRestoration = previous;
+    };
+  }, []);
+
+  useLayoutEffect(() => {
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+    window.scrollTo?.({ top: 0, left: 0, behavior: 'auto' });
+  }, [location.pathname]);
 
   useEffect(() => {
     void hydrateAuth();
