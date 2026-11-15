@@ -157,6 +157,31 @@ describe('AppShell, AuthGuard & AuthCallback routes', () => {
     expect(screen.getByRole('button', { name: 'Open settings' })).toBeInTheDocument();
   });
 
+  it('shows mobile bottom navbar on top-level tabs and hides it on detail/sub-pages', () => {
+    for (const rootPath of ['/', '/search', '/schedule', '/my-list', '/profile']) {
+      const view = renderWithRoute(rootPath);
+      expect(screen.getByRole('navigation', { name: 'Mobile navigation' })).toBeInTheDocument();
+      view.unmount();
+    }
+
+    for (const subPath of [
+      '/discover/seasonal?season=FALL&year=2026',
+      '/discover/recommended',
+      '/media/154587',
+      '/character/1',
+      '/staff/1',
+      '/studio/1',
+      '/user/Natsu',
+      '/notifications',
+      '/settings',
+    ]) {
+      const view = renderWithRoute(subPath);
+      expect(screen.queryByRole('navigation', { name: 'Mobile navigation' })).not.toBeInTheDocument();
+      expect(screen.getByRole('navigation', { name: 'Primary navigation' })).toBeInTheDocument();
+      view.unmount();
+    }
+  });
+
   it('renders 404 NotFoundPage for unknown paths', () => {
     renderWithRoute('/does-not-exist');
     expect(screen.getByRole('heading', { name: /page not found/i })).toBeInTheDocument();

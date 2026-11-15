@@ -65,6 +65,16 @@ const NAV_ITEMS = [
   { to: '/profile', label: 'Profile', icon: User, end: false },
 ] as const;
 
+const MOBILE_TAB_PATHS = new Set<string>(NAV_ITEMS.map((item) => item.to));
+
+export function shouldShowMobileBottomNav(pathname: string): boolean {
+  const normalized =
+    pathname.length > 1 && pathname.endsWith('/')
+      ? pathname.slice(0, -1)
+      : pathname;
+  return MOBILE_TAB_PATHS.has(normalized);
+}
+
 export function AppShell({ children }: AppShellProps) {
   const location = useLocation();
   const navigate = useNavigate();
@@ -87,6 +97,7 @@ export function AppShell({ children }: AppShellProps) {
   const isLoggedIn = Boolean(accessToken);
   const showMobileHeader =
     location.pathname === '/profile' || location.pathname.startsWith('/profile/');
+  const showMobileBottomNav = shouldShowMobileBottomNav(location.pathname);
   const isRateLimited = Boolean(rateLimitUntil && rateLimitUntil > Date.now());
   const retryRemaining =
     isRateLimited && rateLimitUntil
@@ -381,53 +392,59 @@ export function AppShell({ children }: AppShellProps) {
         ) : null}
 
         {/* Main Page Area */}
-        <main className="relative z-10 mx-auto w-full max-w-7xl flex-1 px-3.5 pb-24 pt-2.5 sm:px-4 md:px-8 md:pb-14 md:pt-6">
+        <main
+          className={`relative z-10 mx-auto w-full max-w-7xl flex-1 px-3.5 pt-2.5 sm:px-4 md:px-8 md:pb-14 md:pt-6 ${
+            showMobileBottomNav ? 'pb-24' : 'pb-10'
+          }`}
+        >
           {children}
         </main>
       </div>
 
       {/* Mobile Bottom Navigation */}
-      <nav
-        aria-label="Mobile navigation"
-        className="glass-chrome-docked fixed inset-x-0 bottom-0 z-30 border-t pb-safe-nav md:hidden"
-      >
-        <div className="grid grid-cols-5 px-1 pt-1">
-          {NAV_ITEMS.map((item) => {
-            const Icon = item.icon;
-            return (
-              <NavLink
-                key={item.to}
-                to={item.to}
-                end={item.end}
-                className={({ isActive }) =>
-                  `flex min-h-12 flex-col items-center justify-center gap-0.5 rounded-xl px-1 py-1 text-[11px] font-medium transition-crisp ${
-                    isActive
-                      ? 'text-[var(--accent-primary)] font-semibold'
-                      : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
-                  }`
-                }
-              >
-                {({ isActive }) => (
-                  <>
-                    <span
-                      className={`inline-flex h-7 w-12 items-center justify-center rounded-full transition-crisp ${
-                        isActive ? 'bg-[var(--accent-soft)]' : ''
-                      }`}
-                    >
-                      <Icon
-                        className="h-5 w-5"
-                        strokeWidth={isActive ? 2 : 1.75}
-                        aria-hidden="true"
-                      />
-                    </span>
-                    <span className="truncate">{item.label}</span>
-                  </>
-                )}
-              </NavLink>
-            );
-          })}
-        </div>
-      </nav>
+      {showMobileBottomNav ? (
+        <nav
+          aria-label="Mobile navigation"
+          className="glass-chrome-docked fixed inset-x-0 bottom-0 z-30 border-t pb-safe-nav md:hidden"
+        >
+          <div className="grid grid-cols-5 px-1 pt-1">
+            {NAV_ITEMS.map((item) => {
+              const Icon = item.icon;
+              return (
+                <NavLink
+                  key={item.to}
+                  to={item.to}
+                  end={item.end}
+                  className={({ isActive }) =>
+                    `flex min-h-12 flex-col items-center justify-center gap-0.5 rounded-xl px-1 py-1 text-[11px] font-medium transition-crisp ${
+                      isActive
+                        ? 'text-[var(--accent-primary)] font-semibold'
+                        : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
+                    }`
+                  }
+                >
+                  {({ isActive }) => (
+                    <>
+                      <span
+                        className={`inline-flex h-7 w-12 items-center justify-center rounded-full transition-crisp ${
+                          isActive ? 'bg-[var(--accent-soft)]' : ''
+                        }`}
+                      >
+                        <Icon
+                          className="h-5 w-5"
+                          strokeWidth={isActive ? 2 : 1.75}
+                          aria-hidden="true"
+                        />
+                      </span>
+                      <span className="truncate">{item.label}</span>
+                    </>
+                  )}
+                </NavLink>
+              );
+            })}
+          </div>
+        </nav>
+      ) : null}
     </div>
   );
 }
