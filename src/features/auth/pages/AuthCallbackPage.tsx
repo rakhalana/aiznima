@@ -2,11 +2,13 @@ import { useEffect, useRef } from 'react';
 import { Loader2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { completeOAuthLogin, startAniListLogin } from '@/features/auth/services/oauth';
+import { useDocumentTitle } from '@/shared/hooks/useDocumentTitle';
 import { useToastStore } from '@/shared/stores/useToastStore';
 
 export function AuthCallbackPage() {
   const navigate = useNavigate();
   const processedRef = useRef(false);
+  useDocumentTitle('Signing In');
 
   useEffect(() => {
     if (processedRef.current) {

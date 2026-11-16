@@ -1,7 +1,10 @@
 import { Link } from 'react-router-dom';
 import { Button } from '@/shared/components/Button';
+import { useDocumentTitle } from '@/shared/hooks/useDocumentTitle';
 
 export function NotFoundPage() {
+  useDocumentTitle('Page Not Found');
+
   return (
     <section className="mx-auto max-w-md py-16 text-center">
       <p className="text-xs font-semibold uppercase tracking-wider text-[var(--accent-primary)]">

@@ -51,6 +51,30 @@ describe('shared UI components', () => {
     expect(onSelect).toHaveBeenCalledWith(SAMPLE_MEDIA);
   });
 
+  it('renders MediaCard cover color placeholder before image loads and clears it after load', () => {
+    render(
+      <MediaCard
+        media={{
+          ...SAMPLE_MEDIA,
+          coverImage: {
+            extraLarge: null,
+            large: 'https://example.com/broken.jpg',
+            medium: null,
+            color: '#e4a15d',
+          },
+        }}
+      />,
+    );
+
+    const img = screen.getByRole('img', { name: 'Cowboy Bebop' });
+    const posterBox = img.parentElement as HTMLElement;
+    expect(posterBox.style.backgroundColor).toBe('rgb(228, 161, 93)');
+    expect(img).toHaveAttribute('decoding', 'async');
+
+    fireEvent.load(img);
+    expect(posterBox.style.backgroundColor).toBe('');
+  });
+
   it('renders upcoming episode countdown line on airing MediaCard without cluttering cover', () => {
     const futureSec = Math.floor(Date.now() / 1000) + 2 * 86400 + 3 * 3600;
     render(

@@ -10,6 +10,7 @@ import { NetworkError } from '@/shared/api/graphqlClient';
 import type { MediaSummary, MediaType } from '@/shared/api/types';
 import { MediaCardSkeleton } from '@/shared/components/Skeleton';
 import { ErrorState } from '@/shared/components/StateFeedback';
+import { useDocumentTitle } from '@/shared/hooks/useDocumentTitle';
 import { useIsAdultFilter } from '@/shared/hooks/useIsAdultFilter';
 import { usePreferredTitleLanguage } from '@/shared/hooks/usePreferredTitleLanguage';
 import { usePrefsStore } from '@/shared/stores/usePrefsStore';
@@ -26,6 +27,7 @@ export function DiscoverPage() {
   const { isAdultQueryArg } = useIsAdultFilter();
   const preferredLanguage = usePreferredTitleLanguage();
   const unreadNotificationCount = useUnreadNotificationCount();
+  useDocumentTitle(null);
 
   const { data, isLoading, isError, isRefetchError, error, refetch } =
     useDiscoverQuery(activeMediaType, isAdultQueryArg);

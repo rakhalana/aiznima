@@ -25,6 +25,7 @@ import { SelectDropdown, type SelectOption } from '@/shared/components/SelectDro
 import { MediaRowSkeleton } from '@/shared/components/Skeleton';
 import { EmptyState, ErrorState } from '@/shared/components/StateFeedback';
 import { ViewModeToggle } from '@/shared/components/ViewModeToggle';
+import { useDocumentTitle } from '@/shared/hooks/useDocumentTitle';
 import { usePreferredTitleLanguage } from '@/shared/hooks/usePreferredTitleLanguage';
 import { useAuthStore } from '@/shared/stores/useAuthStore';
 import { usePrefsStore } from '@/shared/stores/usePrefsStore';
@@ -347,6 +348,8 @@ function MyListContent() {
 }
 
 export function MyListPage() {
+  useDocumentTitle('My List');
+
   return (
     <AuthGuard
       title="Track your Anime & Manga"

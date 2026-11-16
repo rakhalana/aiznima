@@ -21,6 +21,7 @@ import type { MediaType, ScoreFormat } from '@/shared/api/types';
 import { Button } from '@/shared/components/Button';
 import { DetailSkeleton, MediaRowSkeleton } from '@/shared/components/Skeleton';
 import { EmptyState, ErrorState } from '@/shared/components/StateFeedback';
+import { useDocumentTitle } from '@/shared/hooks/useDocumentTitle';
 import { useIsAdultFilter } from '@/shared/hooks/useIsAdultFilter';
 import { usePreferredTitleLanguage } from '@/shared/hooks/usePreferredTitleLanguage';
 import { useAuthStore } from '@/shared/stores/useAuthStore';
@@ -44,6 +45,7 @@ export function PublicUserPage() {
     error,
     refetch,
   } = usePublicUserQuery(username);
+  useDocumentTitle(publicUser?.name ?? (username || 'User Profile'));
 
   const isAuthenticated = Boolean(accessToken && viewer?.id);
   const isOwnProfile = Boolean(

@@ -5,6 +5,7 @@ import {
   formatMeanScore,
   formatMediaFormat,
   formatMediaTitle,
+  sanitizeHexColor,
 } from '@/shared/utils/formatters';
 
 interface HeroBannerProps {
@@ -17,6 +18,7 @@ export function HeroBanner({ media, preferredLanguage, onSelect }: HeroBannerPro
   const title = formatMediaTitle(media.title, preferredLanguage);
   const bgUrl = media.bannerImage || media.coverImage?.extraLarge || media.coverImage?.large;
   const posterUrl = media.coverImage?.extraLarge || media.coverImage?.large || media.coverImage?.medium;
+  const posterColor = sanitizeHexColor(media.coverImage?.color);
 
   return (
     <section className="relative overflow-hidden rounded-2xl border border-[var(--border-hairline)] bg-slate-900 shadow-token-xs">
@@ -25,6 +27,8 @@ export function HeroBanner({ media, preferredLanguage, onSelect }: HeroBannerPro
           src={bgUrl}
           alt=""
           aria-hidden="true"
+          fetchPriority="high"
+          decoding="async"
           className="absolute inset-0 h-full w-full object-cover opacity-60 md:opacity-80"
         />
       ) : null}
@@ -74,11 +78,16 @@ export function HeroBanner({ media, preferredLanguage, onSelect }: HeroBannerPro
 
         {posterUrl ? (
           <div className="hidden shrink-0 md:block">
-            <div className="aspect-[2/3] w-28 overflow-hidden rounded-xl border border-white/25 bg-slate-800 shadow-token-lg lg:w-36">
+            <div
+              style={posterColor ? { backgroundColor: posterColor } : undefined}
+              className="aspect-[2/3] w-28 overflow-hidden rounded-xl border border-white/25 bg-slate-800 shadow-token-lg lg:w-36"
+            >
               <img
                 src={posterUrl}
                 alt=""
                 aria-hidden="true"
+                fetchPriority="high"
+                decoding="async"
                 onError={(e) => {
                   e.currentTarget.style.display = 'none';
                 }}

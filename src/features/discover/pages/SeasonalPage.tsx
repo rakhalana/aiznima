@@ -18,6 +18,7 @@ import { SelectDropdown, type SelectOption } from '@/shared/components/SelectDro
 import { MediaCardSkeleton, MediaRowSkeleton } from '@/shared/components/Skeleton';
 import { EmptyState, ErrorState } from '@/shared/components/StateFeedback';
 import { ViewModeToggle } from '@/shared/components/ViewModeToggle';
+import { useDocumentTitle } from '@/shared/hooks/useDocumentTitle';
 import { useIsAdultFilter } from '@/shared/hooks/useIsAdultFilter';
 import { usePreferredTitleLanguage } from '@/shared/hooks/usePreferredTitleLanguage';
 import type { ViewMode } from '@/shared/stores/usePrefsStore';
@@ -150,6 +151,7 @@ export function SeasonalPage() {
 
   const totalCount = query.data?.pages[0]?.pageInfo.total ?? null;
   const activeSeasonLabel = formatSeasonLabel(activeSeason.season, activeSeason.year);
+  useDocumentTitle(`${activeSeasonLabel} Anime`);
 
   const handleSelectSeason = (period: SeasonPeriod) => {
     setSearchParams(

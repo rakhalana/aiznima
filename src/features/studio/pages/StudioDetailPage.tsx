@@ -14,6 +14,7 @@ import { MediaCard } from '@/shared/components/MediaCard';
 import { DetailSkeleton, MediaCardSkeleton } from '@/shared/components/Skeleton';
 import { SelectDropdown } from '@/shared/components/SelectDropdown';
 import { EmptyState, ErrorState } from '@/shared/components/StateFeedback';
+import { useDocumentTitle } from '@/shared/hooks/useDocumentTitle';
 import { useIsAdultFilter } from '@/shared/hooks/useIsAdultFilter';
 import { usePreferredTitleLanguage } from '@/shared/hooks/usePreferredTitleLanguage';
 
@@ -37,6 +38,7 @@ export function StudioDetailPage() {
 
   const detailQuery = useStudioDetailQuery(studioId);
   const mediaQuery = useStudioMediaQuery(studioId, sort, mainOnly);
+  useDocumentTitle(detailQuery.data?.name ?? 'Studio Details');
 
   if (!Number.isFinite(studioId) || studioId <= 0) {
     return (

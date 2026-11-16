@@ -12,7 +12,24 @@
       name="description"
       content="Aiznima — Calm, lightweight unofficial AniList client for Anime & Manga discovery, airing schedules, and personal tracking."
     />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Aiznima" />
+    <meta property="og:title" content="Aiznima — Unofficial AniList Client" />
+    <meta
+      property="og:description"
+      content="Calm, lightweight unofficial AniList client for Anime & Manga discovery, airing schedules, and personal tracking."
+    />
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="Aiznima — Unofficial AniList Client" />
+    <meta
+      name="twitter:description"
+      content="Calm, lightweight unofficial AniList client for Anime & Manga discovery, airing schedules, and personal tracking."
+    />
     <title>Aiznima — Unofficial AniList Client</title>
+    <link rel="dns-prefetch" href="https://graphql.anilist.co" />
+    <link rel="preconnect" href="https://graphql.anilist.co" crossorigin />
+    <link rel="dns-prefetch" href="https://s4.anilist.co" />
+    <link rel="preconnect" href="https://s4.anilist.co" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -23,6 +40,10 @@
       try {
         if (localStorage.getItem('aiznima:theme') === 'dark') {
           document.documentElement.classList.add('dark');
+          var themeMeta = document.querySelector('meta[name="theme-color"]');
+          if (themeMeta) {
+            themeMeta.setAttribute('content', '#0B1120');
+          }
         }
       } catch {
         // Ignore storage restrictions

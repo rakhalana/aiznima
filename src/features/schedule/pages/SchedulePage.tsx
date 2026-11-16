@@ -11,6 +11,7 @@ import { NetworkError } from '@/shared/api/graphqlClient';
 import type { MediaListEntrySummary } from '@/shared/api/types';
 import { MediaCardSkeleton } from '@/shared/components/Skeleton';
 import { EmptyState, ErrorState } from '@/shared/components/StateFeedback';
+import { useDocumentTitle } from '@/shared/hooks/useDocumentTitle';
 import { useIsAdultFilter } from '@/shared/hooks/useIsAdultFilter';
 import { usePreferredTitleLanguage } from '@/shared/hooks/usePreferredTitleLanguage';
 import { useAuthStore } from '@/shared/stores/useAuthStore';
@@ -50,6 +51,7 @@ function formatLocalTime(unixSeconds: number): string {
 
 export function SchedulePage() {
   const navigate = useNavigate();
+  useDocumentTitle('Airing Schedule');
   const [dayOffset, setDayOffset] = useState(0);
   const [listFilter, setListFilter] = useState<ScheduleListFilter>('ALL');
   const { allowAdult } = useIsAdultFilter();

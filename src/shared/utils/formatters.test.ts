@@ -8,6 +8,7 @@ import {
   formatSeasonLabel,
   getCurrentAndNextSeason,
   parseSeasonFromParams,
+  sanitizeHexColor,
 } from './formatters';
 
 describe('formatters', () => {
@@ -80,5 +81,14 @@ describe('formatters', () => {
       season: 'FALL',
       year: 2026,
     });
+  });
+
+  it('validates AniList cover accent hex colors safely', () => {
+    expect(sanitizeHexColor('#e4a15d')).toBe('#e4a15d');
+    expect(sanitizeHexColor(' #FFF ')).toBe('#FFF');
+    expect(sanitizeHexColor('#11223344')).toBe('#11223344');
+    expect(sanitizeHexColor('red')).toBeUndefined();
+    expect(sanitizeHexColor('url(evil)')).toBeUndefined();
+    expect(sanitizeHexColor(null)).toBeUndefined();
   });
 });

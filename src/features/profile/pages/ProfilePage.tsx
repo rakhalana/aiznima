@@ -8,6 +8,7 @@ import { ProfileHeaderAndStats } from '@/features/profile/components/ProfileHead
 import type { ScoreFormat } from '@/shared/api/types';
 import { Button } from '@/shared/components/Button';
 import { DetailSkeleton } from '@/shared/components/Skeleton';
+import { useDocumentTitle } from '@/shared/hooks/useDocumentTitle';
 import { useIsAdultFilter } from '@/shared/hooks/useIsAdultFilter';
 import { usePreferredTitleLanguage } from '@/shared/hooks/usePreferredTitleLanguage';
 import { useAuthStore } from '@/shared/stores/useAuthStore';
@@ -97,6 +98,7 @@ function AuthenticatedProfileContent() {
 
 export function ProfilePage() {
   const navigate = useNavigate();
+  useDocumentTitle('Profile');
 
   return (
     <AuthGuard

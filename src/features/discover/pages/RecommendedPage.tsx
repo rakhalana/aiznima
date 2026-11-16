@@ -6,6 +6,7 @@ import type { MediaSummary, MediaType } from '@/shared/api/types';
 import { MediaCard } from '@/shared/components/MediaCard';
 import { MediaCardSkeleton } from '@/shared/components/Skeleton';
 import { EmptyState, ErrorState } from '@/shared/components/StateFeedback';
+import { useDocumentTitle } from '@/shared/hooks/useDocumentTitle';
 import { usePreferredTitleLanguage } from '@/shared/hooks/usePreferredTitleLanguage';
 import { usePrefsStore } from '@/shared/stores/usePrefsStore';
 
@@ -29,6 +30,7 @@ export function RecommendedPage() {
   const rawType = searchParams.get('type');
   const mediaType: MediaType =
     rawType === 'MANGA' || rawType === 'ANIME' ? rawType : storeType;
+  useDocumentTitle('Recommended For You');
 
   const [filter, setFilter] = useState<RecommendationFilter>('ALL');
 

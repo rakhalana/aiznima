@@ -17,6 +17,7 @@ import {
 import { MediaCard } from '@/shared/components/MediaCard';
 import { DetailSkeleton, MediaCardSkeleton } from '@/shared/components/Skeleton';
 import { EmptyState, ErrorState } from '@/shared/components/StateFeedback';
+import { useDocumentTitle } from '@/shared/hooks/useDocumentTitle';
 import { useIsAdultFilter } from '@/shared/hooks/useIsAdultFilter';
 import { usePreferredTitleLanguage } from '@/shared/hooks/usePreferredTitleLanguage';
 import {
@@ -63,6 +64,7 @@ export function StaffDetailPage() {
     creditFilter,
     activeTab === 'credits',
   );
+  useDocumentTitle(detailQuery.data?.name.full ?? 'Staff Details');
 
   if (!Number.isFinite(staffId) || staffId <= 0) {
     return (

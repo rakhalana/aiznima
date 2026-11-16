@@ -8,6 +8,7 @@ import {
   formatMediaFormat,
   formatMediaTitle,
   formatNextAiringInfo,
+  sanitizeHexColor,
 } from '@/shared/utils/formatters';
 
 interface MediaCardProps {
@@ -27,11 +28,17 @@ export function MediaCard({
   layout = 'grid',
   onSelect,
 }: MediaCardProps) {
-  const [imgError, setImgError] = useState(false);
-  const [imgLoaded, setImgLoaded] = useState(false);
+  const coverUrl = media.coverImage?.large || media.coverImage?.medium || null;
+  const [loadedSrc, setLoadedSrc] = useState<string | null>(null);
+  const [errorSrc, setErrorSrc] = useState<string | null>(null);
+
+  const imgError = Boolean(coverUrl && errorSrc === coverUrl);
+  const imgLoaded = Boolean(coverUrl && loadedSrc === coverUrl);
+  const placeholderColor =
+    !imgLoaded && !imgError ? sanitizeHexColor(media.coverImage?.color) : undefined;
+  const posterBgStyle = placeholderColor ? { backgroundColor: placeholderColor } : undefined;
 
   const title = formatMediaTitle(media.title, preferredLanguage);
-  const coverUrl = media.coverImage?.large || media.coverImage?.medium || null;
   const countUnit =
     media.type === 'ANIME'
       ? media.episodes
@@ -58,8 +65,9 @@ export function MediaCard({
         src={coverUrl}
         alt={title}
         loading="lazy"
-        onLoad={() => setImgLoaded(true)}
-        onError={() => setImgError(true)}
+        decoding="async"
+        onLoad={() => setLoadedSrc(coverUrl)}
+        onError={() => setErrorSrc(coverUrl)}
         className={`h-full w-full object-cover transition-opacity duration-200 ${
           imgLoaded ? 'opacity-100' : 'opacity-0'
         }`}
@@ -86,7 +94,10 @@ export function MediaCard({
           onClick={() => onSelect?.(media)}
           className="flex w-full items-stretch gap-3 rounded-xl border border-[var(--border-hairline)] bg-[var(--bg-surface)] p-2.5 text-left shadow-token-xs transition-crisp hover:border-[var(--border-strong)] active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40"
         >
-          <div className="relative h-24 w-[66px] shrink-0 overflow-hidden rounded-lg border border-[var(--border-hairline)] bg-[var(--bg-subtle)] sm:h-28 sm:w-[76px]">
+          <div
+            style={posterBgStyle}
+            className="relative h-24 w-[66px] shrink-0 overflow-hidden rounded-lg border border-[var(--border-hairline)] bg-[var(--bg-subtle)] sm:h-28 sm:w-[76px]"
+          >
             {posterContent}
           </div>
 
@@ -147,7 +158,10 @@ export function MediaCard({
         onClick={() => onSelect?.(media)}
         className="w-full text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 focus-visible:ring-offset-2 rounded-[10px]"
       >
-        <div className="relative aspect-[2/3] w-full overflow-hidden rounded-[10px] border border-[var(--border-hairline)] bg-[var(--bg-subtle)] shadow-token-xs transition-crisp group-hover:border-[var(--border-strong)] group-active:scale-[0.98]">
+        <div
+          style={posterBgStyle}
+          className="relative aspect-[2/3] w-full overflow-hidden rounded-[10px] border border-[var(--border-hairline)] bg-[var(--bg-subtle)] shadow-token-xs transition-crisp group-hover:border-[var(--border-strong)] group-active:scale-[0.98]"
+        >
           {posterContent}
 
           {media.meanScore ? (

@@ -89,12 +89,13 @@ describe('AppShell, AuthGuard & AuthCallback routes', () => {
     vi.unstubAllGlobals();
   });
 
-  it('shows Guest gateway on protected /my-list route and opens LoginPromptModal', () => {
+  it('shows Guest gateway on protected /my-list route and opens LoginPromptModal', async () => {
     renderWithRoute('/my-list');
 
     expect(
-      screen.getByRole('heading', { name: /track your anime & manga/i }),
+      await screen.findByRole('heading', { name: /track your anime & manga/i }),
     ).toBeInTheDocument();
+    expect(document.title).toBe('My List — Aiznima');
 
     const loginButtons = screen.getAllByRole('button', { name: /login with anilist/i });
     fireEvent.click(loginButtons[0]!);
@@ -105,12 +106,13 @@ describe('AppShell, AuthGuard & AuthCallback routes', () => {
   it('navigates from /profile Guest gateway to Search Users tab', async () => {
     renderWithRoute('/profile');
 
-    fireEvent.click(screen.getByRole('button', { name: /search users/i }));
+    fireEvent.click(await screen.findByRole('button', { name: /search users/i }));
 
     await waitFor(() => {
       expect(screen.getByRole('tab', { name: 'Users' })).toHaveAttribute('aria-selected', 'true');
     });
     expect(screen.getByRole('heading', { name: /search anilist users/i })).toBeInTheDocument();
+    expect(document.title).toBe('Search — Aiznima');
   });
 
   it('renders public user profile directly at /user/:username route', async () => {
@@ -185,9 +187,10 @@ describe('AppShell, AuthGuard & AuthCallback routes', () => {
   it('renders 404 NotFoundPage for unknown paths', () => {
     renderWithRoute('/does-not-exist');
     expect(screen.getByRole('heading', { name: /page not found/i })).toBeInTheDocument();
+    expect(document.title).toBe('Page Not Found — Aiznima');
   });
 
-  it('resets scroll position to top whenever navigating to a different route', () => {
+  it('resets scroll position to top whenever navigating to a different route', async () => {
     const scrollToSpy = vi.spyOn(window, 'scrollTo');
     scrollToSpy.mockClear();
     document.documentElement.scrollTop = 320;
@@ -206,6 +209,7 @@ describe('AppShell, AuthGuard & AuthCallback routes', () => {
     expect(document.documentElement.scrollTop).toBe(0);
     expect(document.body.scrollTop).toBe(0);
     expect(scrollToSpy).toHaveBeenCalledWith({ top: 0, left: 0, behavior: 'auto' });
+    await screen.findByRole('button', { name: /filters/i });
   });
 
   it('restores saved scroll position when navigating back via history', () => {
@@ -251,7 +255,7 @@ describe('AppShell, AuthGuard & AuthCallback routes', () => {
     const mobileNav = screen.getByRole('navigation', { name: 'Mobile navigation' });
     expect(mobileNav).toHaveClass('z-30');
 
-    fireEvent.click(screen.getByRole('button', { name: /filters/i }));
+    fireEvent.click(await screen.findByRole('button', { name: /filters/i }));
 
     const dialog = await screen.findByRole('dialog', { name: /filter & sort/i });
     expect(dialog).toBeInTheDocument();

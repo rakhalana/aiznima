@@ -21,6 +21,7 @@ import { SelectDropdown } from '@/shared/components/SelectDropdown';
 import { useAuthStore } from '@/shared/stores/useAuthStore';
 import { usePrefsStore } from '@/shared/stores/usePrefsStore';
 import { useToastStore } from '@/shared/stores/useToastStore';
+import { useDocumentTitle } from '@/shared/hooks/useDocumentTitle';
 
 const TITLE_LANGUAGES: Array<{ value: UserTitleLanguage; label: string }> = [
   { value: 'ROMAJI', label: 'Romaji (Sousou no Frieren)' },
@@ -42,6 +43,7 @@ const SCORE_FORMATS: Array<{ value: ScoreFormat; label: string }> = [
 export function SettingsPage() {
   const navigate = useNavigate();
   const location = useLocation();
+  useDocumentTitle('Settings');
   const theme = usePrefsStore((state) => state.theme);
   const setTheme = usePrefsStore((state) => state.setTheme);
 

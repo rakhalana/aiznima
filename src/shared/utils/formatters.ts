@@ -420,3 +420,16 @@ export function normalizeScoreTo100(
       return Math.min(100, score);
   }
 }
+
+const HEX_COLOR_PATTERN = /^#(?:[0-9a-f]{3}|[0-9a-f]{6}|[0-9a-f]{8})$/i;
+
+/**
+ * Validates an AniList cover accent hex color before applying it as an inline placeholder style.
+ */
+export function sanitizeHexColor(color: string | null | undefined): string | undefined {
+  if (!color) {
+    return undefined;
+  }
+  const trimmed = color.trim();
+  return HEX_COLOR_PATTERN.test(trimmed) ? trimmed : undefined;
+}

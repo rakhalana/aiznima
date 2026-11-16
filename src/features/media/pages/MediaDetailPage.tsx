@@ -16,6 +16,7 @@ import { DetailTopBar } from '@/shared/components/DetailTopBar';
 import { FavoriteButton } from '@/shared/components/FavoriteButton';
 import { DetailSkeleton } from '@/shared/components/Skeleton';
 import { ErrorState } from '@/shared/components/StateFeedback';
+import { useDocumentTitle } from '@/shared/hooks/useDocumentTitle';
 import { useIsAdultFilter } from '@/shared/hooks/useIsAdultFilter';
 import { usePreferredTitleLanguage } from '@/shared/hooks/usePreferredTitleLanguage';
 import { useAuthStore } from '@/shared/stores/useAuthStore';
@@ -60,6 +61,7 @@ export function MediaDetailPage() {
   const openLoginPrompt = useLoginPromptStore((state) => state.openLoginPrompt);
 
   const { data: media, isLoading, isError, error, refetch } = useMediaDetailQuery(validId);
+  useDocumentTitle(media ? getMediaHeroTitle(media, preferredLanguage) : 'Media Details');
 
   if (!validId) {
     return (

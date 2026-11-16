@@ -48,6 +48,7 @@ import { MediaCardSkeleton, MediaRowSkeleton } from '@/shared/components/Skeleto
 import { EmptyState, ErrorState } from '@/shared/components/StateFeedback';
 import { ViewModeToggle } from '@/shared/components/ViewModeToggle';
 import { useDebounce } from '@/shared/hooks/useDebounce';
+import { useDocumentTitle } from '@/shared/hooks/useDocumentTitle';
 import { useIsAdultFilter } from '@/shared/hooks/useIsAdultFilter';
 import { usePreferredTitleLanguage } from '@/shared/hooks/usePreferredTitleLanguage';
 import { useAuthStore } from '@/shared/stores/useAuthStore';
@@ -259,6 +260,7 @@ export function SearchPage() {
   const setSearchViewMode = usePrefsStore((state) => state.setSearchViewMode);
 
   const normalizedSearch = normalizeSearchInput(urlFilters.search);
+  useDocumentTitle(normalizedSearch ? `Search: ${normalizedSearch}` : 'Search');
   const isTasteCharacterSort =
     urlFilters.type === 'CHARACTER' && urlFilters.characterSort === 'TASTE_MATCH';
   const isTasteStaffSort =

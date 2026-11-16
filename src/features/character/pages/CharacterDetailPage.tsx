@@ -16,6 +16,7 @@ import {
 import { MediaCard } from '@/shared/components/MediaCard';
 import { DetailSkeleton, MediaCardSkeleton } from '@/shared/components/Skeleton';
 import { EmptyState, ErrorState } from '@/shared/components/StateFeedback';
+import { useDocumentTitle } from '@/shared/hooks/useDocumentTitle';
 import { useIsAdultFilter } from '@/shared/hooks/useIsAdultFilter';
 import { usePreferredTitleLanguage } from '@/shared/hooks/usePreferredTitleLanguage';
 import { formatFuzzyDate } from '@/shared/utils/formatters';
@@ -55,6 +56,7 @@ export function CharacterDetailPage() {
 
   const detailQuery = useCharacterDetailQuery(characterId);
   const mediaQuery = useCharacterMediaQuery(characterId, mediaFilter);
+  useDocumentTitle(detailQuery.data?.name.full ?? 'Character Details');
 
   if (!Number.isFinite(characterId) || characterId <= 0) {
     return (

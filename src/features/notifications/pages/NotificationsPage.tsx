@@ -26,6 +26,7 @@ import { NetworkError } from '@/shared/api/graphqlClient';
 import { Button } from '@/shared/components/Button';
 import { MediaRowSkeleton } from '@/shared/components/Skeleton';
 import { EmptyState, ErrorState } from '@/shared/components/StateFeedback';
+import { useDocumentTitle } from '@/shared/hooks/useDocumentTitle';
 import { useIsAdultFilter } from '@/shared/hooks/useIsAdultFilter';
 import { usePreferredTitleLanguage } from '@/shared/hooks/usePreferredTitleLanguage';
 
@@ -260,6 +261,7 @@ function NotificationsContent() {
 
 export function NotificationsPage() {
   const navigate = useNavigate();
+  useDocumentTitle('Notifications');
 
   return (
     <div className="mx-auto max-w-4xl space-y-4 md:space-y-5">
